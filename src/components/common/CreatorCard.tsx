@@ -13,6 +13,8 @@ interface CreatorCardProps {
 	className?: string;
 }
 
+const creatorBadgeRowClass = 'mt-2 flex items-center gap-1.5';
+
 const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 	const { isConnected } = useAccount();
 	const [transactionState, setTransactionState] = useState<
@@ -77,13 +79,21 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 				<p className="font-jakarta text-sm text-white/50">
 					@{creator.instructorId || 'creator'}
 				</p>
+
 				{creator.socialHandle ? (
-					<div className="mt-2 flex items-center gap-1.5 text-xs text-white/60">
+					<div
+						className={cn(creatorBadgeRowClass, 'text-xs text-white/60')}
+					>
 						<LinkIcon className="size-3 text-amber-500/70" />
 						<span className="truncate">@{creator.socialHandle}</span>
 					</div>
 				) : (
-					<div className="mt-2 flex items-center gap-1.5 text-xs text-white/30 italic">
+					<div
+						className={cn(
+							creatorBadgeRowClass,
+							'text-xs text-white/30 italic'
+						)}
+					>
 						<LinkIcon className="size-3 opacity-50" />
 						<span>No public handle</span>
 					</div>
@@ -99,6 +109,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 						{creator.price} ETH
 					</p>
 				</div>
+
 				<Button
 					onClick={handleBuy}
 					variant={isConnected ? 'default' : 'outline'}
