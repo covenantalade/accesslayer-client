@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, Clock3, Copy, XCircle } from 'lucide-react';
+import { formatRecentActivityCompactTimestamp } from '@/utils/recentActivityTimestamp.utils';
 
 type CopyState = 'idle' | 'success' | 'error';
 
@@ -9,7 +10,7 @@ interface TimelineEntry {
 	action: string;
 	amount: string;
 	txHash: string;
-	timeLabel: string;
+	compactTimestamp?: string | null;
 	status: 'confirmed' | 'pending' | 'failed';
 }
 
@@ -19,7 +20,7 @@ const TIMELINE_ENTRIES: TimelineEntry[] = [
 		action: 'Buy',
 		amount: '+2 keys',
 		txHash: '0x2a43bcfdef77ca4c50ef7d38148dd5d7f0149a6e2e20f70f04ce1f4b66fe55dd',
-		timeLabel: '2m ago',
+		compactTimestamp: '2m ago',
 		status: 'confirmed',
 	},
 	{
@@ -27,7 +28,7 @@ const TIMELINE_ENTRIES: TimelineEntry[] = [
 		action: 'Sell',
 		amount: '-1 key',
 		txHash: '0x90c82ac01478b42fcbf9db73a26ed32bd8e50a8917e2408c31c95e9f6a59fc19',
-		timeLabel: '18m ago',
+		compactTimestamp: '18m ago',
 		status: 'pending',
 	},
 	{
@@ -35,7 +36,7 @@ const TIMELINE_ENTRIES: TimelineEntry[] = [
 		action: 'Buy',
 		amount: '+3 keys',
 		txHash: '0x16d2ffbc4297a8c2c3086e07c16e66f47287df0d5a1ce1aef9e448e2f0f3ab51',
-		timeLabel: '51m ago',
+		compactTimestamp: '51m ago',
 		status: 'failed',
 	},
 ];
@@ -138,7 +139,11 @@ const EmptyTransactionTimelineState: React.FC = () => {
 								</div>
 								<div className="text-right">
 									<p className={statusClass}>{entry.status}</p>
-									<p className="text-[10px] text-white/40">{entry.timeLabel}</p>
+									<p className="text-[10px] text-white/40">
+										{formatRecentActivityCompactTimestamp(
+											entry.compactTimestamp
+										)}
+									</p>
 								</div>
 							</div>
 						);
