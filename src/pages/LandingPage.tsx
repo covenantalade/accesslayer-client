@@ -29,6 +29,7 @@ import { formatCompactNumber, formatNumber } from '@/utils/numberFormat.utils';
 import PrecisionModeToggle, { type PrecisionMode } from '@/components/common/PrecisionModeToggle';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import SectionErrorBoundary from '@/components/common/SectionErrorBoundary';
+import { useScrollPreservation } from '@/hooks/useScrollPreservation';
 
 const FEATURED_CREATOR_FACTS = [
 	{ label: 'Membership', value: 'Collectors Circle' },
@@ -140,6 +141,7 @@ function LandingPage() {
 	const [creators, setCreators] = useState<Course[]>([]);
 	const { isMismatch: isNetworkMismatch } = useNetworkMismatch();
 	const [isLoading, setIsLoading] = useState(true);
+	const [isFilterLoading, setIsFilterLoading] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [activeProfileTab, setActiveProfileTab] = useState(() => {
 		if (typeof window === 'undefined') return 'overview';
@@ -170,6 +172,13 @@ function LandingPage() {
 		return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 	});
 	const pendingScrollRestoreRef = useRef<number | null>(null);
+
+	// Use scroll preservation for profile tabs
+	useScrollPreservation(activeProfileTab, {
+		storageKey: 'accesslayer.profile-tab-scroll',
+		enabled: true,
+		restoreDelay: 100, // Small delay to ensure tab content is rendered
+	});
 
 	const trimmedSearchQuery = searchQuery.trim();
 	const hasInvalidSearchInput = /[^a-zA-Z0-9_\s-]/.test(trimmedSearchQuery);
@@ -296,6 +305,18 @@ function LandingPage() {
 		return sorted;
 	}, [creators, trimmedSearchQuery, hasInvalidSearchInput, sortOption]);
 
+	// Add loading state for filter changes
+	useEffect(() => {
+		if (creators.length === 0) return; // Don't show filter loading during initial load
+		
+		setIsFilterLoading(true);
+		const timer = setTimeout(() => {
+			setIsFilterLoading(false);
+		}, 300); // Short delay to show loading indicator
+		
+		return () => clearTimeout(timer);
+	}, [trimmedSearchQuery, sortOption, creators.length]);
+
 	useEffect(() => {
 		setPage(0);
 	}, [trimmedSearchQuery, sortOption]);
@@ -416,6 +437,7 @@ function LandingPage() {
 							value={searchQuery}
 							onChange={setSearchQuery}
 							validationMessage={searchValidationMessage}
+							isLoading={isLoading}
 							className="max-w-none shadow-2xl shadow-black/20"
 						/>
 						<div className="flex items-center gap-3">
@@ -455,6 +477,18 @@ function LandingPage() {
 
 						{isLoading ? (
 							<CreatorGridSkeleton count={6} />
+						) : isFilterLoading ? (
+							<div className="space-y-4">
+								<div className="flex items-center justify-center gap-2 py-8">
+									<div className="size-4 animate-spin rounded-full border-2 border-amber-400/20 border-t-amber-400" />
+									<span className="text-sm text-white/60">Updating results...</span>
+								</div>
+								<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 opacity-50">
+									{pagedCreators.map(creator => (
+										<CreatorCard key={creator.id} creator={creator} />
+									))}
+								</div>
+							</div>
 						) : filteredCreators.length > 0 ? (
 							<div className="space-y-4">
 								{showRetryBanner && (

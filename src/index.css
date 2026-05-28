@@ -205,6 +205,12 @@
 		color: var(--marketplace-label-strong);
 	}
 
+	/* Consistent icon size token for creator card action buttons */
+	.creator-action-icon {
+		width: 1rem; /* size-4 equivalent */
+		height: 1rem;
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.skeleton-shimmer {
 			animation: none;
