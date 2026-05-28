@@ -31,10 +31,7 @@ const CreatorProfileStatItem: React.FC<CreatorProfileStatItemProps> = ({
 			>
 				{label}
 			</p>
-			<div
-				className="relative z-10 mt-2.5 font-jakarta text-base font-bold text-white md:text-[1.05rem]"
-				aria-hidden={accessibleLabel ? 'true' : 'false'}
-			>
+			<div className="relative z-10 mt-2.5 min-w-[4rem] font-jakarta text-base font-bold text-white md:text-[1.05rem]">
 				{value}
 			</div>
 			{helperText && (

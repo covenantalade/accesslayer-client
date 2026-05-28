@@ -10,7 +10,7 @@ const CreatorListRowDivider: React.FC<CreatorListRowDividerProps> = ({
 	return (
 		<div
 			className={cn(
-				'h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent',
+				'h-px w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent',
 				className
 			)}
 			aria-hidden="true"

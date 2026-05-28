@@ -6,7 +6,7 @@ interface CategoryTagProps {
 }
 
 const CategoryTag: React.FC<CategoryTagProps> = ({
-	label = 'Uncategorized',
+	label = 'No category',
 	className,
 }) => {
 	return (
