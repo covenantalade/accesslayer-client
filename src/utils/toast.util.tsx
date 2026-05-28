@@ -1,22 +1,23 @@
 import toast from 'react-hot-toast';
+import type { ToastOptions } from 'react-hot-toast';
 import TransactionHashRow from '@/components/common/TransactionHashRow';
 
 const showToast = {
-	message: (message: string) => {
+	message: (message: string, options?: ToastOptions) => {
 		toast.remove();
-		toast(message);
+		toast(message, options);
 	},
-	success: (message: string) => {
+	success: (message: string, options?: ToastOptions) => {
 		toast.remove();
-		toast.success(message);
+		toast.success(message, options);
 	},
-	error: (message: string) => {
+	error: (message: string, options?: ToastOptions) => {
 		toast.remove();
-		toast.error(message);
+		toast.error(message, options);
 	},
-	loading: (message: string) => {
+	loading: (message: string, options?: ToastOptions) => {
 		toast.remove();
-		toast.loading(message);
+		toast.loading(message, options);
 	},
 	transactionSuccess: (
 		title: string,
