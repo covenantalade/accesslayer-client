@@ -14,6 +14,11 @@ import VerifiedBadge from '@/components/common/VerifiedBadge';
 import CreatorInitialsAvatar from '@/components/common/CreatorInitialsAvatar';
 import CreatorBio from '@/components/common/CreatorBio';
 import { formatCreatorHandle } from '@/utils/handleDisplay.utils';
+import CopySuccessAnnouncement from '@/components/common/CopySuccessAnnouncement';
+import {
+	COPY_SUCCESS_TOAST_ARIA_PROPS,
+	useCopySuccessAnnouncement,
+} from '@/hooks/useCopySuccessAnnouncement';
 
 interface CreatorProfileHeaderProps {
 	name: string;
@@ -38,6 +43,7 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 	className,
 }) => {
 	const [copied, setCopied] = useState(false);
+	const { announcement, announceCopySuccess } = useCopySuccessAnnouncement();
 	const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false);
 	const avatarTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -66,8 +72,11 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 		// Fallback: copy to clipboard
 		try {
 			await navigator.clipboard.writeText(url);
+			announceCopySuccess('Profile link copied.');
 			setCopied(true);
-			showToast.success('Profile link copied to clipboard!');
+			showToast.success('Profile link copied to clipboard!', {
+				ariaProps: COPY_SUCCESS_TOAST_ARIA_PROPS,
+			});
 			setTimeout(() => setCopied(false), 2000);
 		} catch {
 			showToast.error('Failed to copy link');
@@ -77,7 +86,11 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 	const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
 	const avatar = (
-		<CreatorInitialsAvatar name={name} creatorId={creatorId} imageSrc={avatarUrl} />
+		<CreatorInitialsAvatar
+			name={name}
+			creatorId={creatorId}
+			imageSrc={avatarUrl}
+		/>
 	);
 
 	return (
@@ -89,7 +102,10 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 		>
 			<div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
 				{avatarUrl ? (
-					<Dialog open={avatarLightboxOpen} onOpenChange={setAvatarLightboxOpen}>
+					<Dialog
+						open={avatarLightboxOpen}
+						onOpenChange={setAvatarLightboxOpen}
+					>
 						<DialogTrigger asChild>
 							<button
 								type="button"
@@ -104,7 +120,7 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 							aria-labelledby="creator-profile-image-lightbox-title"
 							aria-describedby="creator-profile-image-lightbox-description"
 							className="border-white/10 bg-slate-950/95 p-4 sm:max-w-xl"
-							onCloseAutoFocus={(event) => {
+							onCloseAutoFocus={event => {
 								event.preventDefault();
 								avatarTriggerRef.current?.focus();
 							}}
@@ -122,8 +138,8 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 								id="creator-profile-image-lightbox-description"
 								className="sr-only"
 							>
-								Expanded creator profile image. Press Escape or the close button to
-								dismiss it.
+								Expanded creator profile image. Press Escape or the
+								close button to dismiss it.
 							</DialogDescription>
 							<img
 								src={avatarUrl}
@@ -198,6 +214,7 @@ const CreatorProfileHeader: React.FC<CreatorProfileHeaderProps> = ({
 						{copied ? 'Copied' : canNativeShare ? 'Share' : 'Copy'}
 					</span>
 				</Button>
+				<CopySuccessAnnouncement message={announcement} />
 			</div>
 		</div>
 	);

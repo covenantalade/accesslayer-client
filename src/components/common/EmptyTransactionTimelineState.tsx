@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, Clock3, Copy, XCircle } from 'lucide-react';
 import { formatRecentActivityCompactTimestamp } from '@/utils/recentActivityTimestamp.utils';
+import CopySuccessAnnouncement from '@/components/common/CopySuccessAnnouncement';
+import { useCopySuccessAnnouncement } from '@/hooks/useCopySuccessAnnouncement';
 
 type CopyState = 'idle' | 'success' | 'error';
 
@@ -19,7 +21,8 @@ const DEFAULT_TIMELINE_ENTRIES: TimelineEntry[] = [
 		id: 'entry-1',
 		action: 'Buy',
 		amount: '+2 keys',
-		txHash: '0x2a43bcfdef77ca4c50ef7d38148dd5d7f0149a6e2e20f70f04ce1f4b66fe55dd',
+		txHash:
+			'0x2a43bcfdef77ca4c50ef7d38148dd5d7f0149a6e2e20f70f04ce1f4b66fe55dd',
 		compactTimestamp: '2m ago',
 		status: 'confirmed',
 	},
@@ -27,7 +30,8 @@ const DEFAULT_TIMELINE_ENTRIES: TimelineEntry[] = [
 		id: 'entry-2',
 		action: 'Sell',
 		amount: '-1 key',
-		txHash: '0x90c82ac01478b42fcbf9db73a26ed32bd8e50a8917e2408c31c95e9f6a59fc19',
+		txHash:
+			'0x90c82ac01478b42fcbf9db73a26ed32bd8e50a8917e2408c31c95e9f6a59fc19',
 		compactTimestamp: '18m ago',
 		status: 'pending',
 	},
@@ -35,23 +39,28 @@ const DEFAULT_TIMELINE_ENTRIES: TimelineEntry[] = [
 		id: 'entry-3',
 		action: 'Buy',
 		amount: '+3 keys',
-		txHash: '0x16d2ffbc4297a8c2c3086e07c16e66f47287df0d5a1ce1aef9e448e2f0f3ab51',
+		txHash:
+			'0x16d2ffbc4297a8c2c3086e07c16e66f47287df0d5a1ce1aef9e448e2f0f3ab51',
 		compactTimestamp: '51m ago',
 		status: 'failed',
 	},
 ];
 
-const shortenTxHash = (hash: string) => `${hash.slice(0, 8)}...${hash.slice(-6)}`;
+const shortenTxHash = (hash: string) =>
+	`${hash.slice(0, 8)}...${hash.slice(-6)}`;
 
 interface EmptyTransactionTimelineStateProps {
 	/** Optional transaction data. If provided and empty, the component returns null. */
 	data?: TimelineEntry[];
 }
 
-const EmptyTransactionTimelineState: React.FC<EmptyTransactionTimelineStateProps> = ({
-	data = DEFAULT_TIMELINE_ENTRIES,
-}) => {
-	const [copyStateById, setCopyStateById] = useState<Record<string, CopyState>>({});
+const EmptyTransactionTimelineState: React.FC<
+	EmptyTransactionTimelineStateProps
+> = ({ data = DEFAULT_TIMELINE_ENTRIES }) => {
+	const [copyStateById, setCopyStateById] = useState<
+		Record<string, CopyState>
+	>({});
+	const { announcement, announceCopySuccess } = useCopySuccessAnnouncement();
 
 	if (!data || data.length === 0) {
 		return null;
@@ -60,6 +69,7 @@ const EmptyTransactionTimelineState: React.FC<EmptyTransactionTimelineStateProps
 	const copyTxHash = async (entryId: string, txHash: string) => {
 		try {
 			await navigator.clipboard.writeText(txHash);
+			announceCopySuccess('Transaction hash copied.');
 			setCopyStateById(current => ({ ...current, [entryId]: 'success' }));
 		} catch {
 			setCopyStateById(current => ({ ...current, [entryId]: 'error' }));
@@ -105,7 +115,9 @@ const EmptyTransactionTimelineState: React.FC<EmptyTransactionTimelineStateProps
 								className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/5 bg-white/[0.04] px-3 py-2 text-xs md:text-sm"
 							>
 								<span className="text-white/80">{entry.action}</span>
-								<span className="font-semibold text-white">{entry.amount}</span>
+								<span className="font-semibold text-white">
+									{entry.amount}
+								</span>
 								<div className="min-w-0">
 									<div className="flex items-center gap-2">
 										<span
@@ -116,7 +128,9 @@ const EmptyTransactionTimelineState: React.FC<EmptyTransactionTimelineStateProps
 										</span>
 										<button
 											type="button"
-											onClick={() => copyTxHash(entry.id, entry.txHash)}
+											onClick={() =>
+												copyTxHash(entry.id, entry.txHash)
+											}
 											className="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-white/5 text-white/55 transition-colors hover:bg-white/10 hover:text-white"
 											aria-label={
 												isSuccess
@@ -141,11 +155,7 @@ const EmptyTransactionTimelineState: React.FC<EmptyTransactionTimelineStateProps
 										aria-atomic="true"
 										className="sr-only"
 									>
-										{isSuccess
-											? 'Transaction hash copied to clipboard'
-											: isError
-												? 'Failed to copy transaction hash'
-												: ''}
+										{isError ? 'Failed to copy transaction hash' : ''}
 									</span>
 								</div>
 								<div className="text-right">
@@ -160,6 +170,8 @@ const EmptyTransactionTimelineState: React.FC<EmptyTransactionTimelineStateProps
 						);
 					})}
 				</div>
+
+				<CopySuccessAnnouncement message={announcement} />
 
 				<div className="mt-5 flex justify-center">
 					<Button className="rounded-xl">Open full history</Button>

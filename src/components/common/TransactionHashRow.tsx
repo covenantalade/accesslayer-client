@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Copy, Check, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { shortenAddress } from '@/lib/web3/format';
+import CopySuccessAnnouncement from '@/components/common/CopySuccessAnnouncement';
+import { useCopySuccessAnnouncement } from '@/hooks/useCopySuccessAnnouncement';
 
 interface TransactionHashRowProps {
 	hash: string;
@@ -17,10 +19,12 @@ const TransactionHashRow: React.FC<TransactionHashRowProps> = ({
 	className,
 }) => {
 	const [copied, setCopied] = useState(false);
+	const { announcement, announceCopySuccess } = useCopySuccessAnnouncement();
 
 	const handleCopy = async (e: React.MouseEvent) => {
 		e.stopPropagation();
 		await navigator.clipboard.writeText(hash);
+		announceCopySuccess('Transaction hash copied.');
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
 	};
@@ -46,22 +50,22 @@ const TransactionHashRow: React.FC<TransactionHashRowProps> = ({
 					<button
 						onClick={handleCopy}
 						className="inline-flex size-6 items-center justify-center rounded-md bg-white/5 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
-						aria-label={copied ? 'Transaction hash copied' : 'Copy transaction hash'}
+						aria-label={
+							copied
+								? 'Transaction hash copied'
+								: 'Copy transaction hash'
+						}
 					>
 						{copied ? (
-							<Check className="size-3 text-emerald-400" aria-hidden="true" />
+							<Check
+								className="size-3 text-emerald-400"
+								aria-hidden="true"
+							/>
 						) : (
 							<Copy className="size-3" aria-hidden="true" />
 						)}
 					</button>
-					<span
-						role="status"
-						aria-live="polite"
-						aria-atomic="true"
-						className="sr-only"
-					>
-						{copied ? 'Transaction hash copied to clipboard' : ''}
-					</span>
+					<CopySuccessAnnouncement message={announcement} />
 					{explorerUrl && (
 						<a
 							href={explorerUrl}
