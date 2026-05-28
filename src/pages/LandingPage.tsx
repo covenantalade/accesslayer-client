@@ -34,7 +34,13 @@ import PrecisionModeToggle, {
 } from '@/components/common/PrecisionModeToggle';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import SectionErrorBoundary from '@/components/common/SectionErrorBoundary';
+import StaleDataWarning from '@/components/common/StaleDataWarning';
 import { useScrollPreservation } from '@/hooks/useScrollPreservation';
+import { useStaleData } from '@/hooks/useStaleData';
+import {
+	CREATOR_CARD_ENTRY_CLASS,
+	creatorCardEntryStyle,
+} from '@/utils/cardEntryAnimation.utils';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const FEATURED_CREATOR_FACTS = [
@@ -185,6 +191,10 @@ const CreatorProfileLoadError: React.FC<CreatorProfileLoadErrorProps> = ({
 
 function LandingPage() {
 	const [creators, setCreators] = useState<Course[]>([]);
+	// Last successful fetch timestamp (#301). `null` means we've never
+	// resolved a load yet — the staleness helper treats that as "stale"
+	// so the warning surfaces if the load hangs.
+	const [creatorsFetchedAt, setCreatorsFetchedAt] = useState<number | null>(null);
 	const { isMismatch: isNetworkMismatch } = useNetworkMismatch();
 	const [isLoading, setIsLoading] = useState(true);
 	const [isFilterLoading, setIsFilterLoading] = useState(false);
@@ -297,6 +307,9 @@ function LandingPage() {
 				} else {
 					setCreators(DEMO_CREATORS);
 				}
+				// Track the last successful fetch so the stale-data warning
+				// has a baseline to compare against (#301).
+				setCreatorsFetchedAt(Date.now());
 				setFetchRetryAttempt(0);
 			} catch {
 				if (fetchRetryAttempt < MAX_CREATOR_FETCH_RETRIES) {
@@ -418,6 +431,17 @@ function LandingPage() {
 		setFetchRetryAttempt(0);
 		setFetchRequestId(requestId => requestId + 1);
 	};
+
+	// Stale-data detection (#301). 60s freshness window; when we cross it,
+	// the hook fires a background refresh exactly once until the next
+	// successful fetch resets the baseline.
+	const { stale: creatorsAreStale, ageMs: creatorsAgeMs } = useStaleData(
+		creatorsFetchedAt,
+		{
+			thresholdMs: 60_000,
+			onStale: handleRetryCreatorFetch,
+		}
+	);
 
 	const openTradeDialog = (side: TradeSide) => {
 		setTradeSide(side);
@@ -589,9 +613,32 @@ function LandingPage() {
 										{finalFetchError}
 									</div>
 								)}
+								{/* #301: subtle inline stale-data warning that
+									appears once the cached creator data is past
+									the 60s freshness window. The hook drives a
+									background refresh that resets the baseline
+									and clears the warning automatically. */}
+								{creatorsAreStale && (
+									<StaleDataWarning
+										stale={creatorsAreStale}
+										ageMs={creatorsAgeMs}
+										className="self-start"
+									/>
+								)}
 								<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-									{pagedCreators.map(creator => (
-										<CreatorCard key={creator.id} creator={creator} isPriceRefreshing={isPriceRefreshing} />
+									{pagedCreators.map((creator, index) => (
+										// #300: staggered entry animation; the
+										// helper no-ops on prefers-reduced-motion.
+										<div
+											key={creator.id}
+											className={CREATOR_CARD_ENTRY_CLASS}
+											style={creatorCardEntryStyle(index)}
+										>
+											<CreatorCard
+												creator={creator}
+												isPriceRefreshing={isPriceRefreshing}
+											/>
+										</div>
 									))}
 								</div>
 								<div className="mt-8 flex items-center justify-center gap-3">
