@@ -26,10 +26,13 @@ import NetworkMismatchBanner from '@/components/common/NetworkMismatchBanner';
 import { useNetworkMismatch } from '@/hooks/useNetworkMismatch';
 import showToast from '@/utils/toast.util';
 import { formatCompactNumber, formatNumber } from '@/utils/numberFormat.utils';
-import PrecisionModeToggle, { type PrecisionMode } from '@/components/common/PrecisionModeToggle';
+import PrecisionModeToggle, {
+	type PrecisionMode,
+} from '@/components/common/PrecisionModeToggle';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import SectionErrorBoundary from '@/components/common/SectionErrorBoundary';
 import { useScrollPreservation } from '@/hooks/useScrollPreservation';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const FEATURED_CREATOR_FACTS = [
 	{ label: 'Membership', value: 'Collectors Circle' },
@@ -137,6 +140,46 @@ const getFetchRetryHelperCopy = (attempt: number, maxAttempts: number) =>
 
 type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'supply-desc';
 
+interface CreatorProfileLoadErrorProps {
+	onRetry: () => void;
+	isRetrying: boolean;
+}
+
+const CreatorProfileLoadError: React.FC<CreatorProfileLoadErrorProps> = ({
+	onRetry,
+	isRetrying,
+}) => (
+	<div
+		role="alert"
+		aria-live="polite"
+		className="marketplace-card-surface flex min-h-[18rem] flex-col items-center justify-center rounded-[2rem] border p-6 text-center shadow-[0_24px_80px_-60px_rgba(8,17,31,0.95)] md:p-8"
+	>
+		<div className="mb-4 rounded-full border border-red-400/25 bg-red-500/10 p-3 text-red-200">
+			<AlertCircle className="size-6" aria-hidden="true" />
+		</div>
+		<h2 className="font-grotesque text-2xl font-black tracking-tight text-white">
+			Unable to load this creator profile
+		</h2>
+		<p className="mt-2 max-w-md font-jakarta text-sm leading-relaxed text-white/60">
+			We couldn't load the latest profile details. Check your connection and
+			try again.
+		</p>
+		<Button
+			type="button"
+			variant="outline"
+			onClick={onRetry}
+			disabled={isRetrying}
+			className="mt-5 rounded-xl border-white/10 bg-white/5 px-5 font-bold text-white transition-all hover:border-amber-500/30 hover:bg-amber-500/10"
+		>
+			<RefreshCw
+				className={isRetrying ? 'size-4 animate-spin' : 'size-4'}
+				aria-hidden="true"
+			/>
+			{isRetrying ? 'Retrying...' : 'Retry'}
+		</Button>
+	</div>
+);
+
 function LandingPage() {
 	const [creators, setCreators] = useState<Course[]>([]);
 	const { isMismatch: isNetworkMismatch } = useNetworkMismatch();
@@ -163,6 +206,7 @@ function LandingPage() {
 		return saved ?? 'featured';
 	});
 	const [fetchRetryAttempt, setFetchRetryAttempt] = useState(0);
+	const [fetchRequestId, setFetchRequestId] = useState(0);
 	const [showRetryBanner, setShowRetryBanner] = useState(false);
 	const [finalFetchError, setFinalFetchError] = useState('');
 	const [page, setPage] = useState(() => {
@@ -246,9 +290,7 @@ function LandingPage() {
 					return;
 				}
 
-				setFinalFetchError(
-					FINAL_FETCH_ERROR_COPY
-				);
+				setFinalFetchError(FINAL_FETCH_ERROR_COPY);
 				setShowRetryBanner(false);
 				setFetchRetryAttempt(0);
 				setCreators(DEMO_CREATORS);
@@ -258,7 +300,7 @@ function LandingPage() {
 		};
 
 		fetchCreators();
-	}, [fetchRetryAttempt]);
+	}, [fetchRetryAttempt, fetchRequestId]);
 
 	const searchSuggestions = useMemo(() => {
 		const fromCategories = creators
@@ -308,12 +350,12 @@ function LandingPage() {
 	// Add loading state for filter changes
 	useEffect(() => {
 		if (creators.length === 0) return; // Don't show filter loading during initial load
-		
+
 		setIsFilterLoading(true);
 		const timer = setTimeout(() => {
 			setIsFilterLoading(false);
 		}, 300); // Short delay to show loading indicator
-		
+
 		return () => clearTimeout(timer);
 	}, [trimmedSearchQuery, sortOption, creators.length]);
 
@@ -346,6 +388,13 @@ function LandingPage() {
 	};
 
 	const handleResetSearch = () => setSearchQuery('');
+
+	const handleRetryCreatorFetch = () => {
+		setFinalFetchError('');
+		setShowRetryBanner(false);
+		setFetchRetryAttempt(0);
+		setFetchRequestId(requestId => requestId + 1);
+	};
 
 	const openTradeDialog = (side: TradeSide) => {
 		setTradeSide(side);
@@ -481,7 +530,9 @@ function LandingPage() {
 							<div className="space-y-4">
 								<div className="flex items-center justify-center gap-2 py-8">
 									<div className="size-4 animate-spin rounded-full border-2 border-amber-400/20 border-t-amber-400" />
-									<span className="text-sm text-white/60">Updating results...</span>
+									<span className="text-sm text-white/60">
+										Updating results...
+									</span>
 								</div>
 								<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 opacity-50">
 									{pagedCreators.map(creator => (
@@ -499,7 +550,7 @@ function LandingPage() {
 											MAX_CREATOR_FETCH_RETRIES + 1
 										)}
 										retryLabel={FETCH_RETRY_ACTION_LABEL}
-										onRetry={() => setFetchRetryAttempt(0)}
+										onRetry={handleRetryCreatorFetch}
 									/>
 								)}
 								{finalFetchError && (
@@ -579,7 +630,10 @@ function LandingPage() {
 						parentHref="/"
 						currentLabel="Alex Rivers Portfolio"
 					/>
-					<SectionErrorBoundary sectionName="Creator Header" minHeight={150}>
+					<SectionErrorBoundary
+						sectionName="Creator Header"
+						minHeight={150}
+					>
 						<CreatorProfileHeader
 							name="Alex Rivers"
 							handle="arivers"
@@ -591,112 +645,122 @@ function LandingPage() {
 				</div>
 
 				<SectionErrorBoundary sectionName="Creator Profile" minHeight={300}>
-					<MarketplaceSection
-						spacing="relaxed"
-						className="marketplace-card-surface grid gap-8 rounded-[2rem] border p-6 shadow-[0_24px_80px_-60px_rgba(8,17,31,0.95)] backdrop-blur-sm md:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
-					>
-						<div>
-							<SectionHeading
-								eyebrow="Profile spotlight"
-								title="A reusable profile facts layout for featured creators"
-								className="mb-4"
-							/>
-							<ProfileTabPillGroup
-								tabs={[
-									{ label: 'Overview', value: 'overview' },
-									{ label: 'Creations', value: 'creations' },
-									{ label: 'Collectors', value: 'collectors' },
-									{ label: 'Activity', value: 'activity' },
-								]}
-								activeTab={activeProfileTab}
-								onTabChange={setActiveProfileTab}
-								enableHashRouting
-								className="mb-4"
-							/>
-							<CompactSectionSubtitle className="max-w-xl">
-								Use the same subtitle pattern beneath headings, then drop
-								repeated creator facts into one responsive grid that stays
-								tidy on mobile and desktop.
-							</CompactSectionSubtitle>
-							<div
-								id={`profile-panel-${activeProfileTab}`}
-								role="tabpanel"
-								aria-labelledby={`profile-tab-${activeProfileTab}`}
-								tabIndex={0}
-							>
-								<div className="mt-5 flex flex-wrap gap-2">
-									<MiniStatChip label="Status" value="Verified creator" />
-									<MiniStatChip
-										label="Audience"
-										value="12.4K collectors"
-									/>
-									<MiniStatChip
-										label="Access"
-										value="Member-first drops"
-									/>
+					{finalFetchError ? (
+						<CreatorProfileLoadError
+							onRetry={handleRetryCreatorFetch}
+							isRetrying={isLoading}
+						/>
+					) : (
+						<MarketplaceSection
+							spacing="relaxed"
+							className="marketplace-card-surface grid gap-8 rounded-[2rem] border p-6 shadow-[0_24px_80px_-60px_rgba(8,17,31,0.95)] backdrop-blur-sm md:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
+						>
+							<div>
+								<SectionHeading
+									eyebrow="Profile spotlight"
+									title="A reusable profile facts layout for featured creators"
+									className="mb-4"
+								/>
+								<ProfileTabPillGroup
+									tabs={[
+										{ label: 'Overview', value: 'overview' },
+										{ label: 'Creations', value: 'creations' },
+										{ label: 'Collectors', value: 'collectors' },
+										{ label: 'Activity', value: 'activity' },
+									]}
+									activeTab={activeProfileTab}
+									onTabChange={setActiveProfileTab}
+									enableHashRouting
+									className="mb-4"
+								/>
+								<CompactSectionSubtitle className="max-w-xl">
+									Use the same subtitle pattern beneath headings, then
+									drop repeated creator facts into one responsive grid
+									that stays tidy on mobile and desktop.
+								</CompactSectionSubtitle>
+								<div
+									id={`profile-panel-${activeProfileTab}`}
+									role="tabpanel"
+									aria-labelledby={`profile-tab-${activeProfileTab}`}
+									tabIndex={0}
+								>
+									<div className="mt-5 flex flex-wrap gap-2">
+										<MiniStatChip
+											label="Status"
+											value="Verified creator"
+										/>
+										<MiniStatChip
+											label="Audience"
+											value="12.4K collectors"
+										/>
+										<MiniStatChip
+											label="Access"
+											value="Member-first drops"
+										/>
+									</div>
 								</div>
 							</div>
-						</div>
-						<div className="space-y-3">
-							<CreatorProfileInfoGrid
-								items={[
-									...FEATURED_CREATOR_FACTS,
-									{
-										label: 'Followers',
-										value:
-											FEATURED_CREATOR_FOLLOWER_COUNT != null
-												? formatCompactNumber(
-														FEATURED_CREATOR_FOLLOWER_COUNT
-													)
-												: 'Not available',
-										helperText:
-											FEATURED_CREATOR_FOLLOWER_COUNT != null
-												? undefined
-												: 'Follower count not available yet.',
-									},
-									{
-										label: 'Your holdings',
-										value: `${formatNumber(featuredHoldings)} keys`,
-									},
-								]}
-							/>
-							<div className="flex items-center justify-between gap-2">
-								<span className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-white/40">
-									Metrics display
-								</span>
-								<PrecisionModeToggle
-									mode={precisionMode}
-									onChange={setPrecisionMode}
+							<div className="space-y-3">
+								<CreatorProfileInfoGrid
+									items={[
+										...FEATURED_CREATOR_FACTS,
+										{
+											label: 'Followers',
+											value:
+												FEATURED_CREATOR_FOLLOWER_COUNT != null
+													? formatCompactNumber(
+															FEATURED_CREATOR_FOLLOWER_COUNT
+														)
+													: 'Not available',
+											helperText:
+												FEATURED_CREATOR_FOLLOWER_COUNT != null
+													? undefined
+													: 'Follower count not available yet.',
+										},
+										{
+											label: 'Your holdings',
+											value: `${formatNumber(featuredHoldings)} keys`,
+										},
+									]}
 								/>
+								<div className="flex items-center justify-between gap-2">
+									<span className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-white/40">
+										Metrics display
+									</span>
+									<PrecisionModeToggle
+										mode={precisionMode}
+										onChange={setPrecisionMode}
+									/>
+								</div>
+								<CreatorLabeledStatRow
+									label="Creator Share Supply"
+									value={
+										precisionMode === 'compact'
+											? `${formatCompactNumber(250)} shares available`
+											: `${formatNumber(250)} shares available`
+									}
+								/>
+								{isNetworkMismatch && <NetworkMismatchBanner />}
+								<div className="hidden md:flex items-center gap-3">
+									<Button
+										className="rounded-xl"
+										onClick={() => openTradeDialog('buy')}
+										disabled={isNetworkMismatch}
+									>
+										Buy
+									</Button>
+									<Button
+										className="rounded-xl"
+										variant="outline"
+										onClick={() => openTradeDialog('sell')}
+										disabled={isNetworkMismatch}
+									>
+										Sell
+									</Button>
+								</div>
 							</div>
-							<CreatorLabeledStatRow
-								label="Creator Share Supply"
-								value={
-									precisionMode === 'compact'
-										? `${formatCompactNumber(250)} shares available`
-										: `${formatNumber(250)} shares available`
-								}
-							/>
-							{isNetworkMismatch && <NetworkMismatchBanner />}
-							<div className="hidden md:flex items-center gap-3">
-								<Button
-									className="rounded-xl"
-									onClick={() => openTradeDialog('buy')}
-									disabled={isNetworkMismatch}
-								>
-									Buy
-								</Button>
-								<Button
-									className="rounded-xl"
-									variant="outline"
-									onClick={() => openTradeDialog('sell')}
-									disabled={isNetworkMismatch}
-								>
-									Sell
-								</Button>
-							</div>
-						</div>
-					</MarketplaceSection>
+						</MarketplaceSection>
+					)}
 				</SectionErrorBoundary>
 
 				<div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/85 backdrop-blur-md md:hidden">
