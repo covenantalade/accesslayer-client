@@ -41,7 +41,7 @@ export const appendUtmParams = (inputUrl: string, overrideParams?: UtmParams): s
 
         // Preserve hash and other parts — URL.toString() keeps them
         return url.toString();
-    } catch (e) {
+    } catch {
         // If URL parsing fails, fall back to original input
         return inputUrl;
     }
