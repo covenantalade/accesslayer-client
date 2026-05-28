@@ -209,6 +209,12 @@ function LandingPage() {
 	const [fetchRequestId, setFetchRequestId] = useState(0);
 	const [showRetryBanner, setShowRetryBanner] = useState(false);
 	const [finalFetchError, setFinalFetchError] = useState('');
+	// Simulated background key-price refresh (#305). A real implementation
+	// would be driven by a WebSocket or polling hook; here we flip the flag
+	// on a fixed cadence so the card's loading state is observable until that
+	// pipeline lands. `prefers-reduced-motion` disables the simulation so we
+	// don't surface a non-essential animation to users who opted out.
+	const [isPriceRefreshing, setIsPriceRefreshing] = useState(false);
 	const [page, setPage] = useState(() => {
 		if (typeof window === 'undefined') return 0;
 		const saved = window.sessionStorage.getItem(CREATOR_PAGE_KEY);
@@ -260,6 +266,20 @@ function LandingPage() {
 		const parsed = Number(savedScroll);
 		if (!Number.isFinite(parsed)) return;
 		window.scrollTo({ top: parsed });
+	}, []);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		const reduceMotion = window.matchMedia(
+			'(prefers-reduced-motion: reduce)'
+		).matches;
+		if (reduceMotion) return;
+		// Every 30s, simulate an ~800ms in-flight refresh.
+		const intervalId = window.setInterval(() => {
+			setIsPriceRefreshing(true);
+			window.setTimeout(() => setIsPriceRefreshing(false), 800);
+		}, 30_000);
+		return () => window.clearInterval(intervalId);
 	}, []);
 
 	useEffect(() => {
@@ -440,7 +460,11 @@ function LandingPage() {
 	};
 
 	return (
-		<main className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#08111f_0%,#10213b_45%,#f0b14d_160%)] px-6 pt-12 pb-28 md:px-12 md:pb-12">
+		// #306: the outer wrapper is just a decorative shell; the actual
+		// landmark structure is a top-level <header> sibling of the <main>
+		// below, so screen-reader landmark navigation lands directly on the
+		// marketplace content rather than on the brand banner.
+		<div className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#08111f_0%,#10213b_45%,#f0b14d_160%)] px-6 pt-12 pb-28 md:px-12 md:pb-12">
 			<div className="absolute left-[-4rem] top-[10%] size-72 rounded-full bg-amber-300/20 blur-[100px]" />
 			<div className="absolute bottom-[8%] right-[-3rem] size-72 rounded-full bg-emerald-300/15 blur-[100px]" />
 			<div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,186,73,0.1),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(74,222,128,0.08),transparent_35%)]" />
@@ -471,9 +495,13 @@ function LandingPage() {
 					</div>
 				</MarketplaceSection>
 
-				<SectionDivider title="Discover creators" spacing="relaxed" />
+				<main
+					id="creator-marketplace-main"
+					aria-label="Creator marketplace"
+				>
+					<SectionDivider title="Discover creators" spacing="relaxed" />
 
-				<StickyFilterBar
+					<StickyFilterBar
 					eyebrow="Marketplace filters"
 					title="Find creators without losing your place"
 					description="Search by creator name or handle while you keep scrolling through the marketplace. The filter shell stays visible and compact so you can refine results without losing your place."
@@ -536,7 +564,7 @@ function LandingPage() {
 								</div>
 								<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 opacity-50">
 									{pagedCreators.map(creator => (
-										<CreatorCard key={creator.id} creator={creator} />
+										<CreatorCard key={creator.id} creator={creator} isPriceRefreshing={isPriceRefreshing} />
 									))}
 								</div>
 							</div>
@@ -560,7 +588,7 @@ function LandingPage() {
 								)}
 								<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
 									{pagedCreators.map(creator => (
-										<CreatorCard key={creator.id} creator={creator} />
+										<CreatorCard key={creator.id} creator={creator} isPriceRefreshing={isPriceRefreshing} />
 									))}
 								</div>
 								<div className="mt-8 flex items-center justify-center gap-3">
@@ -806,6 +834,7 @@ function LandingPage() {
 				<MarketplaceSection spacing="relaxed">
 					<EmptyTransactionTimelineState />
 				</MarketplaceSection>
+				</main>
 			</div>
 
 			<TradeDialog
@@ -826,7 +855,7 @@ function LandingPage() {
 				description="Waiting for Stellar confirmation, then refreshing holdings."
 			/>
 			<ScrollToTop />
-		</main>
+		</div>
 	);
 }
 

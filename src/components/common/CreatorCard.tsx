@@ -6,6 +6,7 @@ import { ShoppingCart, Link as LinkIcon, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import showToast from '@/utils/toast.util';
 import { formatCompactNumber, formatNumber } from '@/utils/numberFormat.utils';
+import { formatCreatorHandle } from '@/utils/handleDisplay.utils';
 import { AsyncButton } from '@/components/ui/async-button';
 import { useNetworkMismatch } from '@/hooks/useNetworkMismatch';
 import { useTransactionTelemetry } from '@/hooks/useTransactionTelemetry';
@@ -30,11 +31,26 @@ import CreatorBio from '@/components/common/CreatorBio';
 interface CreatorCardProps {
 	creator: Course;
 	className?: string;
+	/**
+	 * When true, render the price with a subtle refreshing indicator (#305).
+	 * Layout is preserved — the indicator overlays / sits next to the value
+	 * without changing the badge's box.
+	 */
+	isPriceRefreshing?: boolean;
 }
 
 const creatorBadgeRowClass = 'mt-2 flex items-center gap-1.5';
 
-const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
+const CreatorCard: React.FC<CreatorCardProps> = ({
+	creator,
+	className,
+	isPriceRefreshing = false,
+}) => {
+	// Display-normalised handles. Raw values stay on `creator` for any
+	// equality / URL logic downstream.
+	const displayInstructorHandle =
+		formatCreatorHandle(creator.instructorId) || '@creator';
+	const displaySocialHandle = formatCreatorHandle(creator.socialHandle);
 	const { isConnected } = useAccount();
 	const { isMismatch: isNetworkMismatch, expectedChainName } = useNetworkMismatch();
 	const [transactionState, setTransactionState] = useState<
@@ -158,7 +174,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 					<KeySupplyBadge supply={creator.creatorShareSupply} />
 				</div>
 				<p className="marketplace-label-muted font-jakarta text-sm">
-					@{creator.instructorId || 'creator'}
+					{displayInstructorHandle}
 				</p>
 
 				<CreatorBio bio={creator.description} variant="card" className="mt-2" />
@@ -166,7 +182,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 				{creator.socialHandle ? (
 					<div className="marketplace-label-muted mt-2 flex items-center gap-1.5 text-xs">
 						<LinkIcon className="creator-action-icon text-amber-500/70" />
-						<span className="truncate">@{creator.socialHandle}</span>
+						<span className="truncate">{displaySocialHandle}</span>
 					</div>
 				) : (
 					<div
@@ -204,12 +220,12 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 						}
 						value={
 							creator.socialHandle
-								? `@${creator.socialHandle}`
+								? displaySocialHandle
 								: 'No public handle'
 						}
 						valueTitle={
 							creator.socialHandle
-								? `@${creator.socialHandle}`
+								? displaySocialHandle
 								: undefined
 						}
 						valueClassName={
@@ -220,7 +236,34 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 					/>
 					<CardMetaRow
 						label="Key Price"
-						value={`${formatNumber(creator.price)} ETH`}
+						// During a background price refresh (#305) the value
+						// stays visible — we only swap to a muted style and add
+						// an `aria-busy` marker so assistive tech announces that
+						// the figure may change. Wrapping the text in a fixed-
+						// width container preserves layout so the badge does
+						// not shift while refreshing.
+						value={
+							<span
+								aria-busy={isPriceRefreshing || undefined}
+								data-testid="creator-card-price-badge"
+								className={cn(
+									'inline-flex min-w-[6.5rem] items-center gap-1.5 tabular-nums',
+									isPriceRefreshing && 'opacity-60'
+								)}
+							>
+								{isPriceRefreshing && (
+									<span
+										aria-hidden="true"
+										data-testid="creator-card-price-refresh-indicator"
+										className="inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400"
+									/>
+								)}
+								<span>{`${formatNumber(creator.price)} ETH`}</span>
+								{isPriceRefreshing && (
+									<span className="sr-only">Refreshing price</span>
+								)}
+							</span>
+						}
 						truncateValue={false}
 						valueClassName="font-grotesque text-base font-black text-amber-400"
 					/>
