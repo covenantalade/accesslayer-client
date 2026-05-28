@@ -17,11 +17,10 @@ describe('CreatorInitialsAvatar', () => {
 	it('renders initials fallback with hashed background when image is missing', () => {
 		render(<CreatorInitialsAvatar name="Alex Rivers" creatorId="creator-123" />);
 
-		const initials = screen.getByLabelText('Alex Rivers initials avatar');
-		const avatar = initials.parentElement;
+		const avatar = screen.getByRole('img', { name: 'Alex Rivers avatar' });
 		const colors = getFallbackAvatarColors('creator-123');
 
-		expect(initials).toHaveTextContent('AR');
+		expect(avatar).toHaveTextContent('AR');
 		expect(avatar).toHaveStyle({
 			background: colors.background,
 			color: colors.textColor,
