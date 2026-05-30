@@ -7,6 +7,10 @@ export interface Course {
 	title: string;
 	description: string;
 	price: number;
+	/** On-chain key price in stroops (preferred over legacy `price`). */
+	priceStroops?: number;
+	/** ISO timestamp for the next scheduled drop, when applicable. */
+	nextDropAt?: string;
 	creatorShareSupply?: number;
 	instructorId: string;
 	thumbnail?: string;

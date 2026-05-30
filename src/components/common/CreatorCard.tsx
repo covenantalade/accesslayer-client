@@ -14,7 +14,9 @@ import {
 import RecentActivityBadge from '@/components/common/RecentActivityBadge';
 import toast from 'react-hot-toast';
 import showToast from '@/utils/toast.util';
-import { formatCompactNumber, formatNumber } from '@/utils/numberFormat.utils';
+import { formatCompactNumber } from '@/utils/numberFormat.utils';
+import { formatCreatorKeyPriceDisplay } from '@/utils/keyPriceDisplay.utils';
+import CreatorDropCountdown from '@/components/common/CreatorDropCountdown';
 import { formatCreatorHandle } from '@/utils/handleDisplay.utils';
 import { AsyncButton } from '@/components/ui/async-button';
 import { useNetworkMismatch } from '@/hooks/useNetworkMismatch';
@@ -36,6 +38,7 @@ import CreatorListRowDivider from '@/components/common/CreatorListRowDivider';
 import BuyActionHelperText from '@/components/common/BuyActionHelperText';
 import NetworkFeeHint from '@/components/common/NetworkFeeHint';
 import CreatorBio from '@/components/common/CreatorBio';
+import CreatorHandleHoverCard from '@/components/common/CreatorHandleHoverCard';
 import { CREATOR_CARD_MEDIA_RADIUS_CLASS } from '@/utils/creatorCardTokens';
 
 interface CreatorCardProps {
@@ -116,6 +119,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 	};
 
 	const isRecentlyActive = (creator.volume24h ?? 0) > 0;
+	const keyPriceDisplay = formatCreatorKeyPriceDisplay(creator);
 
 	const handleCopyLink = () => {
 		const url = `${window.location.origin}/creator/${creator.id}`;
@@ -162,7 +166,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 	return (
 		<div
 			className={cn(
-				'marketplace-card-surface marketplace-card-surface-hover group relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-amber-400/40 focus-within:ring-offset-2 focus-within:ring-offset-slate-950 md:hover:-translate-y-0.5 md:hover:border-amber-500/25 md:hover:shadow-[0_12px_32px_-20px_rgba(251,191,36,0.5)]',
+				'marketplace-card-surface marketplace-card-surface-hover group relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-amber-400/40 focus-within:ring-offset-2 focus-within:ring-offset-slate-950 motion-reduce:transition-none motion-safe:md:hover:-translate-y-0.5 motion-safe:md:hover:border-amber-500/25 motion-safe:md:hover:shadow-[0_12px_32px_-20px_rgba(251,191,36,0.5)] motion-reduce:md:hover:translate-y-0 motion-reduce:md:hover:border-amber-500/35 motion-reduce:md:hover:bg-white/[0.05] motion-reduce:md:hover:shadow-[0_0_0_1px_rgba(251,191,36,0.12)]',
 				className
 			)}
 		>
@@ -218,9 +222,9 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 					name={creator.title}
 					creatorId={creator.id}
 					imageSrc={creator.thumbnail}
-					imageClassName="transition-transform duration-500 md:group-hover:scale-[1.03]"
+					imageClassName="transition-transform duration-500 motion-reduce:transition-none motion-safe:md:group-hover:scale-[1.03] motion-reduce:md:group-hover:scale-100"
 				/>
-				<div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 md:group-hover:opacity-100" />
+				<div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 motion-reduce:transition-none motion-safe:md:group-hover:opacity-100 motion-reduce:md:group-hover:opacity-100" />
 				{creator.volume24h !== undefined && (
 					// #313: the .creator-card-overlay-text class swaps this
 					// pill to system high-contrast tokens (Canvas / CanvasText
@@ -254,15 +258,35 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 					{isRecentlyActive && <RecentActivityBadge />}
 				</div>
 				<p className="marketplace-label-muted font-jakarta text-sm">
-					{displayInstructorHandle}
+					<CreatorHandleHoverCard
+						handle={displayInstructorHandle}
+						volume24h={creator.volume24h}
+						change24h={creator.change24h}
+						creatorShareSupply={creator.creatorShareSupply}
+						isVerified={creator.isVerified}
+					>
+						{displayInstructorHandle}
+					</CreatorHandleHoverCard>
 				</p>
 
 				<CreatorBio bio={creator.description} variant="card" className="mt-2" />
 
+				{creator.nextDropAt ? (
+					<CreatorDropCountdown nextDropAt={creator.nextDropAt} />
+				) : null}
+
 				{creator.socialHandle ? (
 					<div className="marketplace-label-muted mt-2 flex items-center gap-1.5 text-xs">
 						<LinkIcon className="creator-action-icon text-amber-500/70" />
-						<span className="truncate">{displaySocialHandle}</span>
+						<CreatorHandleHoverCard
+							handle={displaySocialHandle}
+							volume24h={creator.volume24h}
+							change24h={creator.change24h}
+							creatorShareSupply={creator.creatorShareSupply}
+							isVerified={creator.isVerified}
+						>
+							<span className="truncate">{displaySocialHandle}</span>
+						</CreatorHandleHoverCard>
 					</div>
 				) : (
 					<div
@@ -282,7 +306,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 				</div>
 
 				<div className="mt-3 flex flex-wrap gap-2">
-					<MiniStatChip label="Price" value={`${formatNumber(creator.price)} ETH`} />
+					<MiniStatChip label="Price" value={keyPriceDisplay} />
 					<MiniStatChip
 						label="Category"
 						value={creator.category || 'General'}
@@ -338,7 +362,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 										className="inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400"
 									/>
 								)}
-								<span>{`${formatNumber(creator.price)} ETH`}</span>
+								<span>{keyPriceDisplay}</span>
 								{isPriceRefreshing && (
 									<span className="sr-only">Refreshing price</span>
 								)}
@@ -356,7 +380,18 @@ const CreatorCard: React.FC<CreatorCardProps> = ({
 			</div>
 			<CreatorListRowDivider className="mt-4 mb-2" />
 
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+			{/* #354: grouped purchase actions share one sr-only label for context. */}
+			<div
+				role="group"
+				aria-labelledby={`creator-card-actions-label-${creator.id}`}
+				className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+			>
+				<span
+					id={`creator-card-actions-label-${creator.id}`}
+					className="sr-only"
+				>
+					Purchase actions for {creator.title}
+				</span>
 				<NetworkFeeHint className="shrink-0" />
 				<AsyncButton
 					onClick={handleBuy}

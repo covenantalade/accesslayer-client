@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutGroup, motion } from 'framer-motion';
 import { courseService, type Course } from '@/services/course.service';
+import SkipToContent from '@/components/common/SkipToContent';
 import { cn } from '@/lib/utils';
 import SearchBar from '@/components/common/SearchBar';
 import StickyFilterBar from '@/components/common/StickyFilterBar';
@@ -43,7 +45,10 @@ import {
 	CREATOR_CARD_ENTRY_CLASS,
 	creatorCardEntryStyle,
 } from '@/utils/cardEntryAnimation.utils';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { resolveCreatorKeyPriceStroops } from '@/utils/keyPriceDisplay.utils';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
+import { CREATOR_LIST_SORT_LAYOUT_TRANSITION } from '@/utils/creatorListSortTransition';
+import { AlertCircle, ChevronDown, RefreshCw } from 'lucide-react';
 import ClearedFiltersEmptyState from '@/components/common/ClearedFiltersEmptyState';
 import CreatorListPagination from '@/components/common/CreatorListPagination';
 
@@ -55,6 +60,29 @@ const FEATURED_CREATOR_FACTS = [
 ];
 
 const FEATURED_CREATOR_FOLLOWER_COUNT: number | null = null;
+const FEATURED_CREATOR_KEY_HOLDER_COUNT = 0;
+
+const getFeaturedCreatorKeyHolderCopy = (count: number | null) => {
+	if (count == null) {
+		return {
+			value: 'Key holders unavailable',
+			explanation: 'Key holder data is not available yet.',
+		};
+	}
+
+	if (count === 0) {
+		return {
+			value: 'No key holders yet',
+			explanation:
+				'This creator has not unlocked any key holders yet. Be the first to buy a key and start the collector base.',
+		};
+	}
+
+	return {
+		value: `${formatCompactNumber(count)} key holders`,
+		explanation: 'Number of wallets that currently hold at least one key.',
+	};
+};
 
 // Fallback demo data in case API fails
 const DEMO_CREATORS: Course[] = [
@@ -63,6 +91,8 @@ const DEMO_CREATORS: Course[] = [
 		title: 'Alex Rivers',
 		description: 'Digital Artist & Illustrator',
 		price: 0.05,
+		priceStroops: 500_000,
+		nextDropAt: new Date(Date.now() + 86_400_000).toISOString(),
 		creatorShareSupply: 120,
 		instructorId: 'arivers',
 		category: 'Art',
@@ -76,6 +106,7 @@ const DEMO_CREATORS: Course[] = [
 		title: 'Sarah Chen',
 		description: 'Solidity Developer',
 		price: 0.12,
+		priceStroops: 1_200_000,
 		creatorShareSupply: 64,
 		instructorId: 'schen_dev',
 		category: 'Tech',
@@ -102,6 +133,8 @@ const DEMO_CREATORS: Course[] = [
 		title: 'Elena Vance',
 		description: 'UI/UX Designer',
 		price: 0.04,
+		priceStroops: 400_000,
+		nextDropAt: new Date(Date.now() + 3_600_000).toISOString(),
 		creatorShareSupply: 150,
 		instructorId: 'evance_design',
 		category: 'Design',
@@ -214,6 +247,7 @@ function LandingPage() {
 	const [tradeSide, setTradeSide] = useState<TradeSide>('buy');
 	const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
 	const [tradeSubmitting, setTradeSubmitting] = useState(false);
+	const prefersReducedMotion = usePrefersReducedMotion();
 	const [sortOption, setSortOption] = useState<SortOption>(() => {
 		if (typeof window === 'undefined') return 'featured';
 		const saved = window.localStorage.getItem(
@@ -367,12 +401,15 @@ function LandingPage() {
 					.includes(trimmedSearchQuery.toLowerCase())
 		);
 		const sorted = [...filtered];
+		const priceOf = (creator: Course) =>
+			resolveCreatorKeyPriceStroops(creator) ?? 0;
+
 		switch (sortOption) {
 			case 'price-asc':
-				sorted.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+				sorted.sort((a, b) => priceOf(a) - priceOf(b));
 				break;
 			case 'price-desc':
-				sorted.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+				sorted.sort((a, b) => priceOf(b) - priceOf(a));
 				break;
 			case 'supply-desc':
 				sorted.sort(
@@ -411,6 +448,9 @@ function LandingPage() {
 		const start = safePage * PAGE_SIZE;
 		return filteredCreators.slice(start, start + PAGE_SIZE);
 	}, [filteredCreators, safePage]);
+	const featuredCreatorKeyHolderCopy = getFeaturedCreatorKeyHolderCopy(
+		FEATURED_CREATOR_KEY_HOLDER_COUNT
+	);
 
 	useEffect(() => {
 		if (pendingScrollRestoreRef.current == null) return;
@@ -488,11 +528,12 @@ function LandingPage() {
 	};
 
 	return (
-		// #306: the outer wrapper is just a decorative shell; the actual
-		// landmark structure is a top-level <header> sibling of the <main>
-		// below, so screen-reader landmark navigation lands directly on the
-		// marketplace content rather than on the brand banner.
 		<div className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(160deg,#08111f_0%,#10213b_45%,#f0b14d_160%)] px-6 pt-12 pb-28 md:px-12 md:pb-12">
+			<SkipToContent targetId="main-creator-list" label="Skip to creator list" />
+			{/* #306: the outer wrapper is just a decorative shell; the actual
+			    landmark structure is a top-level <header> sibling of the <main>
+			    below, so screen-reader landmark navigation lands directly on the
+			    marketplace content rather than on the brand banner. */}
 			<div className="absolute left-[-4rem] top-[10%] size-72 rounded-full bg-amber-300/20 blur-[100px]" />
 			<div className="absolute bottom-[8%] right-[-3rem] size-72 rounded-full bg-emerald-300/15 blur-[100px]" />
 			<div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,186,73,0.1),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(74,222,128,0.08),transparent_35%)]" />
@@ -575,7 +616,7 @@ function LandingPage() {
 				<SectionDivider title="Marketplace results" spacing="default" />
 
 				<SectionErrorBoundary sectionName="Creator List" minHeight={400}>
-					<MarketplaceSection>
+				<MarketplaceSection id="main-creator-list" tabIndex={-1}>
 						<SectionHeading
 							title="Explore creators"
 							supportingText="Discover creator profiles and marketplace listings."
@@ -629,30 +670,53 @@ function LandingPage() {
 										className="self-start"
 									/>
 								)}
-								<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-									{pagedCreators.map((creator, index) => (
-										// #300: staggered entry animation; the
-										// helper no-ops on prefers-reduced-motion.
-										<div
-											key={creator.id}
-											className={CREATOR_CARD_ENTRY_CLASS}
-											style={creatorCardEntryStyle(index)}
-										>
-											<CreatorCard
-												creator={creator}
-												isPriceRefreshing={isPriceRefreshing}
-											/>
-										</div>
-									))}
-								</div>
+								<LayoutGroup>
+									<div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+										{pagedCreators.map((creator, index) => (
+											// #300: staggered entry animation; the
+											// helper no-ops on prefers-reduced-motion.
+											// #355: layout transition when sort order changes.
+											<motion.div
+												key={creator.id}
+												layout={!prefersReducedMotion}
+												transition={
+													CREATOR_LIST_SORT_LAYOUT_TRANSITION
+												}
+												className={CREATOR_CARD_ENTRY_CLASS}
+												style={creatorCardEntryStyle(index, {
+													prefersReducedMotion,
+												})}
+											>
+												<CreatorCard
+													creator={creator}
+													isPriceRefreshing={isPriceRefreshing}
+												/>
+											</motion.div>
+										))}
+									</div>
+								</LayoutGroup>
 								<CreatorListPagination
 									page={safePage}
 									totalPages={totalPages}
 									onPageChange={handlePageChange}
 									className="mt-8"
 								/>
-								{safePage >= totalPages - 1 && (
-									<p
+								{safePage < totalPages - 1 && (
+									<div className="mt-4 flex justify-center">
+										<Button
+											type="button"
+											variant="outline"
+											onClick={() => handlePageChange(safePage + 1)}
+											aria-label="Load more creators"
+											className="sr-only rounded-full border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white shadow-none focus:not-sr-only focus:flex focus:items-center focus:gap-2 focus:outline-none focus:ring-2 focus:ring-amber-400/60 focus:ring-offset-2 focus:ring-offset-slate-950"
+										>
+											<ChevronDown className="size-4" aria-hidden="true" />
+											Load more creators
+										</Button>
+									</div>
+								)}
+									{safePage >= totalPages - 1 && (
+										<p
 										role="status"
 										aria-live="polite"
 										className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/45"
@@ -764,8 +828,8 @@ function LandingPage() {
 										/>
 										<MiniStatChip
 											label="Audience"
-											value="12.4K collectors"
-											explanation="Number of wallets that currently hold at least one of this creator's keys."
+											value={featuredCreatorKeyHolderCopy.value}
+											explanation={featuredCreatorKeyHolderCopy.explanation}
 										/>
 										<MiniStatChip
 											label="Access"
@@ -923,6 +987,7 @@ function LandingPage() {
 				side={tradeSide}
 				creatorName="Alex Rivers"
 				availableHoldings={featuredHoldings}
+				keyPriceStroops={resolveCreatorKeyPriceStroops(DEMO_CREATORS[0])}
 				isSubmitting={tradeSubmitting}
 				onOpenChange={setTradeDialogOpen}
 				onConfirm={handleConfirmTrade}

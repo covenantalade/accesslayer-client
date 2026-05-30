@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import CopySuccessAnnouncement from '@/components/common/CopySuccessAnnouncement';
+import { useCopySuccessAnnouncement } from '@/hooks/useCopySuccessAnnouncement';
 
 interface TruncatedAddressProps {
 	address: string;
@@ -25,9 +27,11 @@ const TruncatedAddress: React.FC<TruncatedAddressProps> = ({
 	className,
 }) => {
 	const [copied, setCopied] = useState(false);
+	const { announcement, announceCopySuccess } = useCopySuccessAnnouncement();
 
 	const handleCopy = async () => {
 		await navigator.clipboard.writeText(address);
+		announceCopySuccess('Address copied.');
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
 	};
@@ -54,14 +58,7 @@ const TruncatedAddress: React.FC<TruncatedAddressProps> = ({
 							<Copy className="size-3" aria-hidden="true" />
 						)}
 					</button>
-					<span
-						role="status"
-						aria-live="polite"
-						aria-atomic="true"
-						className="sr-only"
-					>
-						{copied ? 'Address copied to clipboard' : ''}
-					</span>
+					<CopySuccessAnnouncement message={announcement} />
 				</>
 			)}
 		</span>
