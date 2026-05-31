@@ -4,12 +4,18 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	DialogDescription,
 	DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Copy, Check } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { formatAbsoluteDateTime, formatRelativeTime } from '@/utils/time.utils';
+import showToast from '@/utils/toast.util';
+import { formatTimestampTooltip } from '@/utils/time.utils';
+import CopySuccessAnnouncement from '@/components/common/CopySuccessAnnouncement';
+import {
+	COPY_SUCCESS_TOAST_ARIA_PROPS,
+	useCopySuccessAnnouncement,
+} from '@/hooks/useCopySuccessAnnouncement';
 
 export interface TransactionFailureDetails {
 	txHash?: string;
@@ -34,13 +40,30 @@ const TransactionFailureDrawer: React.FC<TransactionFailureDrawerProps> = ({
 	onRetry,
 	onDismiss,
 }) => {
-	const [copiedField, setCopiedField] = useState<'errorCode' | 'txHash' | null>(null);
+	const [copiedField, setCopiedField] = useState<
+		'errorCode' | 'txHash' | null
+	>(null);
+	const { announcement, announceCopySuccess } = useCopySuccessAnnouncement();
 
-	const copyToClipboard = (text: string, field: 'errorCode' | 'txHash') => {
-		navigator.clipboard.writeText(text);
-		toast.success('Copied to clipboard');
-		setCopiedField(field);
-		setTimeout(() => setCopiedField(null), 2000);
+	const copyToClipboard = async (
+		text: string,
+		field: 'errorCode' | 'txHash'
+	) => {
+		try {
+			await navigator.clipboard.writeText(text);
+			showToast.success('Copied to clipboard', {
+				ariaProps: COPY_SUCCESS_TOAST_ARIA_PROPS,
+			});
+			announceCopySuccess(
+				field === 'errorCode'
+					? 'Error code copied.'
+					: 'Transaction hash copied.'
+			);
+			setCopiedField(field);
+			window.setTimeout(() => setCopiedField(null), 2000);
+		} catch {
+			showToast.error('Failed to copy to clipboard');
+		}
 	};
 
 	const handleClose = () => {
@@ -48,8 +71,23 @@ const TransactionFailureDrawer: React.FC<TransactionFailureDrawerProps> = ({
 		onOpenChange?.(false);
 	};
 
-	const absoluteTimestamp = formatAbsoluteDateTime(failureDetails.timestamp);
-	const relativeTimestamp = formatRelativeTime(failureDetails.timestamp);
+	const timestamp = failureDetails.timestamp
+		? formatTimestampTooltip(failureDetails.timestamp, {
+				showAbsolute: false,
+			})
+		: null;
+
+	const handleCopyErrorCode = () => {
+		if (failureDetails.errorCode) {
+			copyToClipboard(failureDetails.errorCode, 'errorCode').catch(() => {});
+		}
+	};
+
+	const handleCopyTxHash = () => {
+		if (failureDetails.txHash) {
+			copyToClipboard(failureDetails.txHash, 'txHash').catch(() => {});
+		}
+	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,26 +99,24 @@ const TransactionFailureDrawer: React.FC<TransactionFailureDrawerProps> = ({
 						</div>
 						<div>
 							<DialogTitle>Transaction Failed</DialogTitle>
+							<DialogDescription className="sr-only">
+								Details about why the transaction failed.
+							</DialogDescription>
 						</div>
 					</div>
 				</DialogHeader>
 
 				<div className="space-y-4 border-t border-white/5 pt-4">
-					{failureDetails.timestamp && (
+					{failureDetails.timestamp && timestamp && (
 						<div>
 							<p className="text-sm font-medium text-white/70 mb-2">
 								Time
 							</p>
 							<p
 								className="text-sm text-white/80 rounded-lg bg-white/5 p-3"
-								title={absoluteTimestamp ?? undefined}
+								title={timestamp.title ?? undefined}
 							>
-								{relativeTimestamp}
-								{absoluteTimestamp ? (
-									<span className="ml-2 text-white/45">
-										({absoluteTimestamp})
-									</span>
-								) : null}
+								{timestamp.display}
 							</p>
 						</div>
 					)}
@@ -103,27 +139,28 @@ const TransactionFailureDrawer: React.FC<TransactionFailureDrawerProps> = ({
 									{failureDetails.errorCode}
 								</code>
 								<button
-									onClick={() =>
-										copyToClipboard(failureDetails.errorCode!, 'errorCode')
-									}
+									type="button"
+									onClick={handleCopyErrorCode}
 									className="shrink-0 p-2 hover:bg-white/10 rounded transition-colors"
-									aria-label={copiedField === 'errorCode' ? 'Error code copied' : 'Copy error code'}
+									aria-label={
+										copiedField === 'errorCode'
+											? 'Error code copied'
+											: 'Copy error code'
+									}
 								>
 									{copiedField === 'errorCode' ? (
-										<Check className="size-4 text-emerald-400" aria-hidden="true" />
+										<Check
+											className="size-4 text-emerald-400"
+											aria-hidden="true"
+										/>
 									) : (
-										<Copy className="size-4 text-white/60" aria-hidden="true" />
+										<Copy
+											className="size-4 text-white/60"
+											aria-hidden="true"
+										/>
 									)}
 								</button>
 							</div>
-							<span
-								role="status"
-								aria-live="polite"
-								aria-atomic="true"
-								className="sr-only"
-							>
-								{copiedField === 'errorCode' ? 'Error code copied to clipboard' : ''}
-							</span>
 						</div>
 					)}
 
@@ -137,29 +174,32 @@ const TransactionFailureDrawer: React.FC<TransactionFailureDrawerProps> = ({
 									{failureDetails.txHash}
 								</code>
 								<button
-									onClick={() =>
-										copyToClipboard(failureDetails.txHash!, 'txHash')
-									}
+									type="button"
+									onClick={handleCopyTxHash}
 									className="shrink-0 p-2 hover:bg-white/10 rounded transition-colors"
-									aria-label={copiedField === 'txHash' ? 'Transaction hash copied' : 'Copy transaction hash'}
+									aria-label={
+										copiedField === 'txHash'
+											? 'Transaction hash copied'
+											: 'Copy transaction hash'
+									}
 								>
 									{copiedField === 'txHash' ? (
-										<Check className="size-4 text-emerald-400" aria-hidden="true" />
+										<Check
+											className="size-4 text-emerald-400"
+											aria-hidden="true"
+										/>
 									) : (
-										<Copy className="size-4 text-white/60" aria-hidden="true" />
+										<Copy
+											className="size-4 text-white/60"
+											aria-hidden="true"
+										/>
 									)}
 								</button>
 							</div>
-							<span
-								role="status"
-								aria-live="polite"
-								aria-atomic="true"
-								className="sr-only"
-							>
-								{copiedField === 'txHash' ? 'Transaction hash copied to clipboard' : ''}
-							</span>
 						</div>
 					)}
+
+					<CopySuccessAnnouncement message={announcement} />
 
 					{failureDetails.developerDetails &&
 						Object.keys(failureDetails.developerDetails).length > 0 && (

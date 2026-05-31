@@ -88,6 +88,11 @@
 	--sidebar-accent-foreground: oklch(0.21 0.006 285.885);
 	--sidebar-border: oklch(0.92 0.004 286.32);
 	--sidebar-ring: oklch(0.705 0.015 286.067);
+	--marketplace-card-bg: rgba(255, 255, 255, 0.05);
+	--marketplace-card-bg-hover: rgba(255, 255, 255, 0.08);
+	--marketplace-card-border: rgba(255, 255, 255, 0.1);
+	--marketplace-label-muted: rgba(255, 255, 255, 0.6);
+	--marketplace-label-strong: rgba(255, 255, 255, 0.85);
 }
 
 .dark {
@@ -122,6 +127,22 @@
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.552 0.016 285.938);
+	--marketplace-card-bg: rgba(255, 255, 255, 0.05);
+	--marketplace-card-bg-hover: rgba(255, 255, 255, 0.08);
+	--marketplace-card-border: rgba(255, 255, 255, 0.1);
+	--marketplace-label-muted: rgba(255, 255, 255, 0.6);
+	--marketplace-label-strong: rgba(255, 255, 255, 0.85);
+}
+
+@media (prefers-contrast: more) {
+	:root,
+	.dark {
+		--marketplace-card-bg: rgba(4, 12, 24, 0.88);
+		--marketplace-card-bg-hover: rgba(7, 20, 40, 0.94);
+		--marketplace-card-border: rgba(255, 255, 255, 0.4);
+		--marketplace-label-muted: rgba(255, 255, 255, 0.88);
+		--marketplace-label-strong: rgba(255, 255, 255, 0.97);
+	}
 }
 
 @layer base {
@@ -154,27 +175,6 @@
 		margin-bottom: var(--spacing-section-major);
 	}
 
-	.link-action-chip:focus-visible {
-		outline: none;
-		border-color: rgba(252, 211, 77, 0.85);
-		background-color: rgba(251, 191, 36, 0.2);
-		color: rgba(255, 255, 255, 0.98);
-		box-shadow:
-			0 0 0 2px rgba(252, 211, 77, 0.9),
-			0 0 0 5px rgba(15, 23, 42, 0.95);
-	}
-
-	@media (forced-colors: active) {
-		.link-action-chip:focus-visible {
-			outline: 2px solid Highlight;
-			outline-offset: 2px;
-			border-color: Highlight;
-			background-color: Canvas;
-			color: CanvasText;
-			box-shadow: none;
-		}
-	}
-
 	.skeleton-shimmer {
 		position: relative;
 		overflow: hidden;
@@ -186,6 +186,29 @@
 		);
 		background-size: 220% 100%;
 		animation: skeleton-shimmer 1.6s linear infinite;
+	}
+
+	.marketplace-card-surface {
+		background-color: var(--marketplace-card-bg);
+		border-color: var(--marketplace-card-border);
+	}
+
+	.marketplace-card-surface-hover:hover {
+		background-color: var(--marketplace-card-bg-hover);
+	}
+
+	.marketplace-label-muted {
+		color: var(--marketplace-label-muted);
+	}
+
+	.marketplace-label-strong {
+		color: var(--marketplace-label-strong);
+	}
+
+	/* Consistent icon size token for creator card action buttons */
+	.creator-action-icon {
+		width: 1rem; /* size-4 equivalent */
+		height: 1rem;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
@@ -206,5 +229,64 @@
 	}
 	100% {
 		background-position: -100% 0;
+	}
+}
+
+/*
+ * Creator-card entry animation (#300).
+ *
+ * The card opts in by applying `.creator-card-entry` and inline-setting
+ * `--creator-card-entry-delay` (the helper at
+ * `src/utils/cardEntryAnimation.utils.ts` does this). When the
+ * `prefers-reduced-motion` media query is active, the animation is
+ * suppressed but the card still ends up at the same visual final state
+ * (no transform, no opacity reduction) because the keyframe end-state
+ * and the default rendered state are equivalent.
+ */
+@keyframes creator-card-entry {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.creator-card-entry {
+	animation: creator-card-entry 220ms ease-out both;
+	animation-delay: var(--creator-card-entry-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.creator-card-entry {
+		animation: none;
+	}
+}
+
+/*
+ * High-contrast / forced-colors overlay text guardrails (#313).
+ *
+ * The image-overlay pills on the creator card render text over a
+ * semi-transparent surface that loses contrast in forced-colors mode
+ * (Windows High Contrast). When forced-colors is active we drop the
+ * semi-transparent backdrop and pin the text + background to the
+ * system tokens (`Canvas`, `CanvasText`, `ButtonBorder`) which are
+ * guaranteed to meet the WCAG contrast ratio for the active high-
+ * contrast theme.
+ *
+ * Scoped to the overlay pill (`.creator-card-overlay-text` class
+ * applied on the relevant element) so non-overlay text is not touched.
+ */
+@media (forced-colors: active) {
+	.creator-card-overlay-text {
+		background: Canvas !important;
+		color: CanvasText !important;
+		border: 1px solid ButtonBorder !important;
+		backdrop-filter: none !important;
+	}
+	.creator-card-overlay-text * {
+		color: CanvasText !important;
 	}
 }

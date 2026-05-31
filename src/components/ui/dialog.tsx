@@ -49,9 +49,11 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
+	showEscapeHint = true,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
+	showEscapeHint?: boolean;
 }) {
 	return (
 		<DialogPortal data-slot="dialog-portal">
@@ -64,7 +66,6 @@ function DialogContent({
 				)}
 				{...props}
 			>
-				{children}
 				{showCloseButton && (
 					<DialogPrimitive.Close
 						data-slot="dialog-close"
@@ -73,6 +74,15 @@ function DialogContent({
 						<XIcon />
 						<span className="sr-only">Close</span>
 					</DialogPrimitive.Close>
+				)}
+				{children}
+				{showEscapeHint && (
+					<p
+						aria-hidden="true"
+						className="pointer-events-none absolute right-4 bottom-3 select-none text-[11px] text-white/45"
+					>
+						Esc to close
+					</p>
 				)}
 			</DialogPrimitive.Content>
 		</DialogPortal>

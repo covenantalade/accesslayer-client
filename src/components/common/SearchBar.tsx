@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react';
+import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 import InlineValidationMessage from '@/components/common/InlineValidationMessage';
 
@@ -8,6 +9,7 @@ interface SearchBarProps {
 	placeholder?: string;
 	className?: string;
 	validationMessage?: string;
+	isLoading?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -16,7 +18,30 @@ const SearchBar: React.FC<SearchBarProps> = ({
 	placeholder = 'Search creators by name or handle...',
 	className,
 	validationMessage,
+	isLoading = false,
 }) => {
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	const handleClear = () => {
+		onChange('');
+		inputRef.current?.focus();
+	};
+
+	if (isLoading) {
+		return (
+			<div className={cn('w-full max-w-md', className)}>
+				<div className="relative">
+					<div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+						<div className="size-5 rounded bg-white/20 skeleton-shimmer" />
+					</div>
+					<div className="block w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-3">
+						<div className="h-5 w-48 rounded bg-white/20 skeleton-shimmer" />
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className={cn('w-full max-w-md', className)}>
 			<div className="relative">
@@ -24,9 +49,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
 					<Search className="size-5 text-white/50" aria-hidden="true" />
 				</div>
 				<input
+					ref={inputRef}
 					type="text"
 					className={cn(
-						'block w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-3 text-sm text-white placeholder:text-white/40 focus:border-amber-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-500/20',
+						'block w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-10 text-sm text-white placeholder:text-white/40 focus:border-amber-500/50 focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-500/20',
 						validationMessage &&
 							'border-amber-400/45 focus:border-amber-400/65 focus:ring-amber-300/20'
 					)}
@@ -34,6 +60,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
 					value={value}
 					onChange={e => onChange(e.target.value)}
 				/>
+				{value && (
+					<button
+						type="button"
+						aria-label="Clear search"
+						onClick={handleClear}
+						className="absolute inset-y-0 right-0 flex items-center pr-3 text-white/50 hover:text-white transition-colors"
+					>
+						✕
+					</button>
+				)}
 			</div>
 			{validationMessage && (
 				<InlineValidationMessage message={validationMessage} />

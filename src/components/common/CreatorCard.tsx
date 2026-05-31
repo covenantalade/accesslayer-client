@@ -1,11 +1,38 @@
 import { useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { AsyncButton } from '@/components/ui/async-button';
 import type { Course } from '@/services/course.service';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Link as LinkIcon, TrendingUp } from 'lucide-react';
+import {
+	ShoppingCart,
+	Link as LinkIcon,
+	TrendingUp,
+	MoreVertical,
+	Copy,
+	Share2,
+	ExternalLink,
+} from 'lucide-react';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import RecentActivityBadge from '@/components/common/RecentActivityBadge';
 import toast from 'react-hot-toast';
 import showToast from '@/utils/toast.util';
+import { formatCompactNumber } from '@/utils/numberFormat.utils';
+import { formatCreatorKeyPriceDisplay } from '@/utils/keyPriceDisplay.utils';
+import { formatCreatorHandle } from '@/utils/handleDisplay.utils';
+import { normalizeCreatorDisplayName } from '@/utils/creatorDisplayName.utils';
+import { getCreatorPriceChartAccessibilityCopy } from '@/utils/creatorPriceChartAccessibility.utils';
+import { formatJoinDate } from '@/utils/formatJoinDate';
+import { useSystemTheme } from '@/utils/useSystemTheme';
+import { Tooltip } from '@/components/ui/tooltip';
+import { AsyncButton } from '@/components/ui/async-button';
+import { useNetworkMismatch } from '@/hooks/useNetworkMismatch';
+import { useTransactionTelemetry } from '@/hooks/useTransactionTelemetry';
 import TransactionRetryNotice from '@/components/common/TransactionRetryNotice';
 import TransactionFailureDrawer from '@/components/common/TransactionFailureDrawer';
 import type { TransactionFailureDetails } from '@/components/common/TransactionFailureDrawer';
@@ -21,34 +48,66 @@ import Change24hBadge from '@/components/common/Change24hBadge';
 import KeySupplyBadge from '@/components/common/KeySupplyBadge';
 import CreatorListRowDivider from '@/components/common/CreatorListRowDivider';
 import BuyActionHelperText from '@/components/common/BuyActionHelperText';
-import CreatorLabeledStatRow from '@/components/common/CreatorLabeledStatRow';
+import NetworkFeeHint from '@/components/common/NetworkFeeHint';
 import CreatorBio from '@/components/common/CreatorBio';
-import { useTransactionTelemetry } from '@/hooks/useTransactionTelemetry';
-import { useNetworkMismatch } from '@/hooks/useNetworkMismatch';
-import { formatCompactNumber, formatNumber } from '@/utils/numberFormat.utils';
+import CreatorDropCountdown from '@/components/common/CreatorDropCountdown';
+import CreatorHandleHoverCard from '@/components/common/CreatorHandleHoverCard';
+import { CREATOR_CARD_MEDIA_RADIUS_CLASS } from '@/utils/creatorCardTokens';
 
 interface CreatorCardProps {
 	creator: Course;
 	className?: string;
+	/**
+	 * When true, render the price with a subtle refreshing indicator (#305).
+	 * Layout is preserved — the indicator overlays / sits next to the value
+	 * without changing the badge's box.
+	 */
+	isPriceRefreshing?: boolean;
 }
 
-const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
+const creatorBadgeRowClass = 'mt-2 flex items-center gap-1.5';
+
+const CreatorCard: React.FC<CreatorCardProps> = ({
+	creator,
+	className,
+	isPriceRefreshing = false,
+}) => {
+	const { isDarkMode } = useSystemTheme();
+	// Display-normalised handles. Raw values stay on `creator` for any
+	// equality / URL logic downstream.
+	const displayInstructorHandle =
+		formatCreatorHandle(creator.instructorId) || '@creator';
+	const displaySocialHandle = formatCreatorHandle(creator.socialHandle);
+	const displayCreatorName =
+		normalizeCreatorDisplayName(creator.title) || 'Unnamed creator';
+	const priceChartAccessibility = getCreatorPriceChartAccessibilityCopy({
+		name: displayCreatorName,
+		price: creator.price,
+		priceStroops: creator.priceStroops,
+		change24h: creator.change24h,
+	});
+	const priceChartDescriptionId = `creator-price-chart-description-${creator.id}`;
 	const { isConnected } = useAccount();
-	const { isMismatch: isNetworkMismatch, expectedChainName } = useNetworkMismatch();
+	const { isMismatch: isNetworkMismatch, expectedChainName } =
+		useNetworkMismatch();
 	const [transactionState, setTransactionState] = useState<
 		'idle' | 'submitting' | 'failed' | 'success'
 	>('idle');
 	const [failureDrawerOpen, setFailureDrawerOpen] = useState(false);
-	const [failureDetails, setFailureDetails] = useState<TransactionFailureDetails>({
-		errorMessage: '',
-	});
+	const [failureDetails, setFailureDetails] =
+		useState<TransactionFailureDetails>({
+			errorMessage: '',
+		});
 	const hasFailedOnceRef = useRef(false);
 	const trackTransactionEvent = useTransactionTelemetry();
 
 	const runPurchaseAttempt = () => {
 		setTransactionState('submitting');
-		trackTransactionEvent('tx_submitted', { creatorId: creator.id, creatorTitle: creator.title });
-		showToast.loading(`Purchasing keys for ${creator.title}...`);
+		trackTransactionEvent('tx_submitted', {
+			creatorId: creator.id,
+			creatorTitle: displayCreatorName,
+		});
+		showToast.loading(`Purchasing keys for ${displayCreatorName}...`);
 
 		window.setTimeout(() => {
 			toast.remove();
@@ -57,7 +116,8 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 				hasFailedOnceRef.current = true;
 				setTransactionState('failed');
 				setFailureDetails({
-					errorMessage: 'Transaction failed: Insufficient balance to complete the purchase.',
+					errorMessage:
+						'Transaction failed: Insufficient balance to complete the purchase.',
 					errorCode: 'ERR_INSUFFICIENT_BALANCE',
 					txHash: '0xabcd1234...failed',
 					developerDetails: {
@@ -73,10 +133,13 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 
 			hasFailedOnceRef.current = false;
 			setTransactionState('success');
-			trackTransactionEvent('tx_confirmed', { creatorId: creator.id, creatorTitle: creator.title });
+			trackTransactionEvent('tx_confirmed', {
+				creatorId: creator.id,
+				creatorTitle: displayCreatorName,
+			});
 			showToast.transactionSuccess(
 				'Purchase Successful!',
-				`You successfully bought a key for ${creator.title}`,
+				`You successfully bought a key for ${displayCreatorName}`,
 				'0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
 				'https://stellar.expert/explorer/testnet/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 			);
@@ -85,6 +148,29 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 				setTransactionState('idle');
 			}, 1800);
 		}, 1500);
+	};
+
+	const isRecentlyActive = (creator.volume24h ?? 0) > 0;
+	const keyPriceDisplay = formatCreatorKeyPriceDisplay(creator);
+
+	const handleCopyLink = () => {
+		const url = `${window.location.origin}/creator/${creator.id}`;
+		navigator.clipboard
+			.writeText(url)
+			.then(() => toast.success('Profile link copied'))
+			.catch(() => toast.error('Could not copy link'));
+	};
+
+	const handleShare = () => {
+		const url = `${window.location.origin}/creator/${creator.id}`;
+		if (navigator.share) {
+			navigator.share({ title: displayCreatorName, url }).catch(() => {});
+		} else {
+			navigator.clipboard
+				.writeText(url)
+				.then(() => toast.success('Link copied to clipboard'))
+				.catch(() => toast.error('Could not share'));
+		}
 	};
 
 	const handleBuy = () => {
@@ -102,7 +188,7 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 			return;
 		}
 
-		toast.success(`Purchasing keys for ${creator.title}...`, {
+		toast.success(`Purchasing keys for ${displayCreatorName}...`, {
 			duration: 3000,
 		});
 		// Implementation for contract interaction would go here
@@ -112,21 +198,75 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 	return (
 		<div
 			className={cn(
-				'group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-amber-400/40 focus-within:ring-offset-2 focus-within:ring-offset-slate-950 md:hover:-translate-y-0.5 md:hover:border-amber-500/25 md:hover:bg-white/[0.08] md:hover:shadow-[0_12px_32px_-20px_rgba(251,191,36,0.5)]',
+				'marketplace-card-surface marketplace-card-surface-hover group relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 focus-within:ring-2 focus-within:ring-amber-400/40 focus-within:ring-offset-2 focus-within:ring-offset-slate-950 motion-reduce:transition-none motion-safe:md:hover:-translate-y-0.5 motion-safe:md:hover:border-amber-500/25 motion-safe:md:hover:shadow-[0_12px_32px_-20px_rgba(251,191,36,0.5)] motion-reduce:md:hover:translate-y-0 motion-reduce:md:hover:border-amber-500/35 motion-reduce:md:hover:bg-white/[0.05] motion-reduce:md:hover:shadow-[0_0_0_1px_rgba(251,191,36,0.12)]',
 				className
 			)}
 		>
-			<div className="relative mb-4 aspect-square overflow-hidden rounded-xl">
+			<div className="absolute right-3 top-3 z-20">
+				<DropdownMenu>
+					<DropdownMenuTrigger
+						aria-label={`More actions for ${displayCreatorName}`}
+						className="flex size-8 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/10 hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+					>
+						<MoreVertical className="size-4" aria-hidden="true" />
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						align="end"
+						className="w-48 border-white/10 bg-slate-900/95 backdrop-blur-xl"
+					>
+						<DropdownMenuLabel className="text-xs text-white/50">
+							{displayCreatorName}
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator className="bg-white/10" />
+						<DropdownMenuItem
+							onSelect={handleCopyLink}
+							className="cursor-pointer gap-2 text-white/70 focus:bg-white/10 focus:text-white"
+						>
+							<Copy className="size-3.5" aria-hidden="true" />
+							Copy profile link
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onSelect={handleShare}
+							className="cursor-pointer gap-2 text-white/70 focus:bg-white/10 focus:text-white"
+						>
+							<Share2 className="size-3.5" aria-hidden="true" />
+							Share creator
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onSelect={() => {}}
+							className="cursor-pointer gap-2 text-white/70 focus:bg-white/10 focus:text-white"
+						>
+							<ExternalLink className="size-3.5" aria-hidden="true" />
+							View profile
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
+			<div
+				className={cn(
+					'relative mb-4 aspect-square overflow-hidden',
+					CREATOR_CARD_MEDIA_RADIUS_CLASS
+				)}
+				role="img"
+				aria-labelledby={`creator-name-${creator.id}`}
+			>
 				<CreatorInitialsAvatar
-					name={creator.title}
+					name={displayCreatorName}
 					creatorId={creator.id}
 					imageSrc={creator.thumbnail}
-					imageClassName="transition-transform duration-500 md:group-hover:scale-[1.03]"
+					imageClassName={cn(
+						'transition-transform duration-500 motion-reduce:transition-none motion-safe:md:group-hover:scale-[1.03] motion-reduce:md:group-hover:scale-100',
+						isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+					)}
 				/>
-				<div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 md:group-hover:opacity-100" />
+				<div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 motion-reduce:transition-none motion-safe:md:group-hover:opacity-100 motion-reduce:md:group-hover:opacity-100" />
 				{creator.volume24h !== undefined && (
-					<div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-slate-950/75 border border-white/10 px-2.5 py-1 backdrop-blur-md">
-						<TrendingUp className="size-3 text-emerald-400" />
+					// #313: the .creator-card-overlay-text class swaps this
+					// pill to system high-contrast tokens (Canvas / CanvasText
+					// / ButtonBorder) when forced-colors mode is active so
+					// the text stays legible over the image overlay.
+					<div className="creator-card-overlay-text absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-slate-950/75 border border-white/10 px-2.5 py-1 backdrop-blur-md">
+						<TrendingUp className="creator-action-icon text-emerald-400" />
 						<span className="text-xs font-bold text-white/90">
 							{creator.volume24h > 0
 								? `${formatCompactNumber(creator.volume24h)} ETH`
@@ -138,8 +278,11 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 
 			<div className="mb-4">
 				<div className="flex items-center gap-2 flex-wrap">
-					<h3 className="font-jakarta text-lg font-bold text-white">
-						{creator.title}
+					<h3
+						id={`creator-name-${creator.id}`}
+						className="font-jakarta text-lg font-bold text-white"
+					>
+						{displayCreatorName}
 					</h3>
 					<VerifiedBadge
 						verified={Boolean(creator.isVerified)}
@@ -147,32 +290,84 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 					/>
 					<Change24hBadge change={creator.change24h} />
 					<KeySupplyBadge supply={creator.creatorShareSupply} />
+					{isRecentlyActive && <RecentActivityBadge />}
 				</div>
-				<p className="font-jakarta text-sm text-white/50">
-					@{creator.instructorId || 'creator'}
+				<p className="marketplace-label-muted font-jakarta text-sm">
+					<CreatorHandleHoverCard
+						handle={displayInstructorHandle}
+						volume24h={creator.volume24h}
+						change24h={creator.change24h}
+						creatorShareSupply={creator.creatorShareSupply}
+						isVerified={creator.isVerified}
+					>
+						{displayInstructorHandle}
+					</CreatorHandleHoverCard>
 				</p>
 
-				<CreatorBio bio={creator.description} variant="card" className="mt-2" />
+				<CreatorBio
+					bio={creator.description}
+					variant="card"
+					className="mt-2"
+				/>
+
+				{creator.nextDropAt ? (
+					<CreatorDropCountdown nextDropAt={creator.nextDropAt} />
+				) : null}
 
 				{creator.socialHandle ? (
-					<div className="mt-2 flex items-center gap-1.5 text-xs text-white/60">
-						<LinkIcon className="size-3 text-amber-500/70" />
-						<span className="truncate">@{creator.socialHandle}</span>
+					<div className="marketplace-label-muted mt-2 flex items-center gap-1.5 text-xs">
+						<LinkIcon className="creator-action-icon text-amber-500/70" />
+						<CreatorHandleHoverCard
+							handle={displaySocialHandle}
+							volume24h={creator.volume24h}
+							change24h={creator.change24h}
+							creatorShareSupply={creator.creatorShareSupply}
+							isVerified={creator.isVerified}
+						>
+							<span className="truncate">{displaySocialHandle}</span>
+						</CreatorHandleHoverCard>
 					</div>
 				) : (
-					<div className="mt-2 flex items-center gap-1.5 text-xs text-white/30 italic">
-						<LinkIcon className="size-3 opacity-50" />
+					<div
+						className={cn(
+							creatorBadgeRowClass,
+							'text-xs text-white/30 italic'
+						)}
+					>
+						<LinkIcon className="creator-action-icon opacity-50" />
 						<span>No public handle</span>
 					</div>
 				)}
 
 				{/*  Sparkline placeholder */}
 				<div className="mt-3">
-					<div className="h-10 w-full rounded-lg bg-white/10 animate-pulse" />
+					<div
+						role="img"
+						aria-label={priceChartAccessibility.summary}
+						aria-describedby={priceChartDescriptionId}
+						className="h-10 w-full rounded-lg bg-white/10 animate-pulse"
+					/>
+					<table id={priceChartDescriptionId} className="sr-only">
+						<caption>{priceChartAccessibility.summary}</caption>
+						<thead>
+							<tr>
+								<th scope="col">Point</th>
+								<th scope="col">Key price</th>
+							</tr>
+						</thead>
+						<tbody>
+							{priceChartAccessibility.points.map(point => (
+								<tr key={point.label}>
+									<th scope="row">{point.label}</th>
+									<td>{point.value}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
 				</div>
 
 				<div className="mt-3 flex flex-wrap gap-2">
-					<MiniStatChip label="Price" value={`${formatNumber(creator.price)} ETH`} />
+					<MiniStatChip label="Price" value={keyPriceDisplay} />
 					<MiniStatChip
 						label="Category"
 						value={creator.category || 'General'}
@@ -180,34 +375,46 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 					<MiniStatChip label="Level" value={creator.level || 'Open'} />
 				</div>
 				<CreatorListRowDivider className="my-4" />
-				<div className="mt-3 space-y-1.5">
-					<CreatorLabeledStatRow
-						label="Creator Share Supply"
-						value={
-							creator.creatorShareSupply
-								? `${formatCompactNumber(creator.creatorShareSupply)} shares`
-								: 'Supply pending'
-						}
-						className="px-3 py-3"
-						labelClassName="text-[0.6rem]"
-						valueClassName="text-sm md:text-sm"
-					/>
+				<div className="mt-3 space-y-2">
+					{creator.joinedAt && (
+						<CardMetaRow
+							label="Join Date"
+							value={
+								<Tooltip
+									content={
+										<p>
+											{new Date(creator.joinedAt).toLocaleDateString(
+												'en-US',
+												{
+													year: 'numeric',
+													month: 'long',
+													day: 'numeric',
+												}
+											)}
+										</p>
+									}
+								>
+									<span className="text-white/75 cursor-default truncate">
+										{formatJoinDate(creator.joinedAt)}
+									</span>
+								</Tooltip>
+							}
+						/>
+					)}
 					<CardMetaRow
 						label={
 							<span className="inline-flex items-center gap-1.5">
-								<LinkIcon className="size-3 text-amber-500/70" />
+								<LinkIcon className="creator-action-icon text-amber-500/70" />
 								Handle
 							</span>
 						}
 						value={
 							creator.socialHandle
-								? `@${creator.socialHandle}`
+								? displaySocialHandle
 								: 'No public handle'
 						}
 						valueTitle={
-							creator.socialHandle
-								? `@${creator.socialHandle}`
-								: undefined
+							creator.socialHandle ? displaySocialHandle : undefined
 						}
 						valueClassName={
 							creator.socialHandle
@@ -217,18 +424,59 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 					/>
 					<CardMetaRow
 						label="Key Price"
-						value={`${formatNumber(creator.price)} ETH`}
+						// During a background price refresh (#305) the value
+						// stays visible — we only swap to a muted style and add
+						// an `aria-busy` marker so assistive tech announces that
+						// the figure may change. Wrapping the text in a fixed-
+						// width container preserves layout so the badge does
+						// not shift while refreshing.
+						value={
+							<span
+								aria-busy={isPriceRefreshing || undefined}
+								data-testid="creator-card-price-badge"
+								className={cn(
+									'inline-flex min-w-[6.5rem] items-center gap-1.5 tabular-nums',
+									isPriceRefreshing && 'opacity-60'
+								)}
+							>
+								{isPriceRefreshing && (
+									<span
+										aria-hidden="true"
+										data-testid="creator-card-price-refresh-indicator"
+										className="inline-block size-3 shrink-0 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-400"
+									/>
+								)}
+								<span>{keyPriceDisplay}</span>
+								{isPriceRefreshing && (
+									<span className="sr-only">Refreshing price</span>
+								)}
+							</span>
+						}
 						truncateValue={false}
 						valueClassName="font-grotesque text-base font-black text-amber-400"
 					/>
 				</div>
+				<CreatorListRowDivider className="my-4" />
 				<CreatorSocialLinksList
 					handle={creator.socialHandle}
 					className="mt-4"
 				/>
 			</div>
+			<CreatorListRowDivider className="mt-4 mb-2" />
 
-			<div className="flex items-center justify-end gap-4">
+			{/* #354: grouped purchase actions share one sr-only label for context. */}
+			<div
+				role="group"
+				aria-labelledby={`creator-card-actions-label-${creator.id}`}
+				className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+			>
+				<span
+					id={`creator-card-actions-label-${creator.id}`}
+					className="sr-only"
+				>
+					Purchase actions for {displayCreatorName}
+				</span>
+				<NetworkFeeHint className="shrink-0" />
 				<AsyncButton
 					onClick={handleBuy}
 					variant={isConnected ? 'default' : 'outline'}
@@ -242,17 +490,22 @@ const CreatorCard: React.FC<CreatorCardProps> = ({ creator, className }) => {
 					)}
 				>
 					{transactionState === 'success' && (
-						<TransactionStatusIcon status="success" className="mr-2" />
+						<TransactionStatusIcon status="success" />
+					)}
+					{transactionState === 'submitting' && (
+						<TransactionStatusIcon status="pending" />
 					)}
 					{transactionState === 'failed' && (
-						<TransactionStatusIcon status="failed" className="mr-2" />
+						<TransactionStatusIcon status="failed" />
 					)}
-					<ShoppingCart className="mr-2 size-4" />
-					{transactionState === 'success'
-						? 'Completed'
-						: transactionState === 'failed'
-							? 'Retry Purchase'
-							: 'Buy Key'}
+					<ShoppingCart className="creator-action-icon" />
+					{transactionState === 'submitting'
+						? 'Processing...'
+						: transactionState === 'success'
+							? 'Completed'
+							: transactionState === 'failed'
+								? 'Retry Purchase'
+								: 'Buy Key'}
 				</AsyncButton>
 			</div>
 

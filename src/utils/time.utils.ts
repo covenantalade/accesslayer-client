@@ -11,9 +11,62 @@ export interface RelativeTimeOptions {
 	includeAgo?: boolean;
 }
 
+export interface TimestampTooltipOptions {
+	/**
+	 * Timezone to use for absolute timestamp display.
+	 * Defaults to system timezone via Intl.DateTimeFormat(undefined).
+	 */
+	timeZone?: string;
+	/**
+	 * Whether to show absolute timestamp in parentheses after relative time.
+	 * Defaults to true.
+	 */
+	showAbsolute?: boolean;
+}
+
+/**
+ * Formats a timestamp for tooltip display with consistent pattern:
+ * - Relative time as primary display (e.g., "2 hr ago")
+ * - Absolute time in tooltip on hover (via title attribute)
+ * - Optional absolute time in parentheses
+ *
+ * @param input - Timestamp as string, number, Date, or null/undefined
+ * @param options - Configuration options for formatting
+ * @returns Object with formatted strings and hover title
+ */
+export function formatTimestampTooltip(
+	input: string | number | Date | null | undefined,
+	options: TimestampTooltipOptions = {}
+): { display: string; title: string | null } {
+	const { timeZone, showAbsolute = true } = options;
+
+	const absolute =
+		input != null ? formatAbsoluteDateTime(input, { timeZone }) : null;
+	const relative = input != null ? formatRelativeTime(input) : 'N/A';
+
+	if (input == null) {
+		return { display: 'N/A', title: null };
+	}
+
+	const display =
+		showAbsolute && absolute ? `${relative} (${absolute})` : relative;
+
+	return { display, title: absolute };
+}
+
+export interface AbsoluteDateTimeOptions {
+	/**
+	 * Timezone to use for formatting.
+	 * Defaults to system timezone via Intl.DateTimeFormat(undefined).
+	 */
+	timeZone?: string;
+}
+
 export function formatAbsoluteDateTime(
-	input: string | number | Date | null | undefined
+	input: string | number | Date | null | undefined,
+	options: AbsoluteDateTimeOptions = {}
 ): string | null {
+	const { timeZone } = options;
 	if (input == null) return null;
 	const date = input instanceof Date ? input : new Date(input);
 	if (Number.isNaN(date.getTime())) return null;
@@ -24,6 +77,7 @@ export function formatAbsoluteDateTime(
 		day: '2-digit',
 		hour: '2-digit',
 		minute: '2-digit',
+		timeZone,
 	}).format(date);
 }
 
@@ -62,4 +116,3 @@ export function formatRelativeTime(
 	const suffix = isFuture ? 'from now' : includeAgo ? 'ago' : '';
 	return [prefix, core, suffix].filter(Boolean).join(' ');
 }
-
