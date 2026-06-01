@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
+import { useSearchParams } from 'react-router';
 import { courseService, type Course } from '@/services/course.service';
 import SkipToContent from '@/components/common/SkipToContent';
 import { cn } from '@/lib/utils';
@@ -254,7 +255,10 @@ function LandingPage() {
 	const { isMismatch: isNetworkMismatch } = useNetworkMismatch();
 	const [isLoading, setIsLoading] = useState(true);
 	const [isFilterLoading, setIsFilterLoading] = useState(false);
+	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState('');
+	const searchQueryRef = useRef<string>('');
+	const sortOptionRef = useRef<SortOption>('featured');
 	const PROFILE_TABS = ['overview', 'creations', 'collectors', 'activity'];
 	const [activeProfileTab, setActiveProfileTab] = useState(() => {
 		if (typeof window === 'undefined') return 'overview';
@@ -343,7 +347,7 @@ function LandingPage() {
 			newParams.delete('sort');
 		}
 		setSearchParams(newParams, { replace: true });
-	}, [searchQuery, sortOption]);
+	}, [searchQuery, sortOption, searchParams, setSearchParams]);
 
 	useEffect(() => {
 		const q = searchParams.get('q');
@@ -358,7 +362,7 @@ function LandingPage() {
 		} else if (sort === null && sortOptionRef.current !== 'featured') {
 			setSortOption('featured');
 		}
-	}, []);
+	}, [searchParams]);
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
