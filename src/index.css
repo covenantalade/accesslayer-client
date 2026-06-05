@@ -225,6 +225,74 @@
 	}
 }
 
+@keyframes header-enter {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.header-animate {
+	animation: header-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+	animation-delay: 200ms;
+}
+
+@keyframes scroll-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(28px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.scroll-reveal {
+	opacity: 0;
+}
+
+.scroll-reveal.is-visible {
+	animation: scroll-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.header-animate {
+		animation: none;
+	}
+	.scroll-reveal {
+		opacity: 1;
+	}
+	.scroll-reveal.is-visible {
+		animation: none;
+	}
+}
+
+@keyframes hero-fade-up {
+	from {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.hero-animate {
+	animation: hero-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-animate {
+		animation: none;
+	}
+}
+
 @keyframes marquee {
 	from {
 		transform: translateX(0);

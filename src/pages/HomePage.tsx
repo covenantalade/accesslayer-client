@@ -1,5 +1,7 @@
+import Footer from '../components/home/Footer';
 import Header from '../components/home/Header';
 import Hero from '../components/home/Hero';
+import TrendingCreators from '../components/home/TrendingCreators';
 
 export default function HomePage() {
 	return (
@@ -7,7 +9,9 @@ export default function HomePage() {
 			<Header />
 			<main>
 				<Hero />
+				<TrendingCreators />
 			</main>
+			<Footer />
 		</>
 	);
 }
