@@ -32,7 +32,7 @@ export default function Hero() {
 			<img
 				src="/images/hero-bg.avif"
 				alt=""
-				className="absolute inset-0 h-full w-full object-cover"
+				className="hero-bg-animate absolute inset-0 h-full w-full object-cover"
 			/>
 
 			{/* Very light tint */}
