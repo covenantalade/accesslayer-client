@@ -61,6 +61,9 @@ importers:
          js-cookie:
             specifier: ^3.0.5
             version: 3.0.8
+         lenis:
+            specifier: ^1.3.23
+            version: 1.3.23(react@19.2.6)
          lucide-react:
             specifier: ^0.525.0
             version: 0.525.0(react@19.2.6)
@@ -4873,6 +4876,23 @@ packages:
          {
             integrity: sha512-8t6Q3TclQ4uZynJY9IGr2+SsIGwK9JHcO6ootkHCGA0CrQCRy+VkouYNO2xicET6b9al7QKzpebNow+gkpCL8g==,
          }
+
+   lenis@1.3.23:
+      resolution:
+         {
+            integrity: sha512-YxYq3TJqj9sJNv0V9SkyQHejt14xwyIwgDaaMK89Uf9SxQfIszu+gTQSSphh6BWlLTNVKvvXAGkg+Zf+oFIevg==,
+         }
+      peerDependencies:
+         '@nuxt/kit': '>=3.0.0'
+         react: '>=17.0.0'
+         vue: '>=3.0.0'
+      peerDependenciesMeta:
+         '@nuxt/kit':
+            optional: true
+         react:
+            optional: true
+         vue:
+            optional: true
 
    levn@0.4.1:
       resolution:
@@ -10798,6 +10818,10 @@ snapshots:
          json-buffer: 3.0.1
 
    keyvaluestorage-interface@1.0.0: {}
+
+   lenis@1.3.23(react@19.2.6):
+      optionalDependencies:
+         react: 19.2.6
 
    levn@0.4.1:
       dependencies:
