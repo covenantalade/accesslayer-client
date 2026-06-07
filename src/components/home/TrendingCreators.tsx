@@ -12,7 +12,8 @@ const MOCK_CREATORS: MockCreator[] = [
 	{
 		id: '1',
 		title: 'Lena Markov',
-		description: 'Digital artist and illustrator. Drops exclusive prints and behind-the-scenes content for key holders.',
+		description:
+			'Digital artist and illustrator. Drops exclusive prints and behind-the-scenes content for key holders.',
 		price: 12.4,
 		priceStroops: 124000000,
 		instructorId: 'lenamarkov',
@@ -27,7 +28,8 @@ const MOCK_CREATORS: MockCreator[] = [
 	{
 		id: '2',
 		title: 'Dario Fuentes',
-		description: 'Music producer and beatmaker. Key holders get early access to unreleased tracks and sample packs.',
+		description:
+			'Music producer and beatmaker. Key holders get early access to unreleased tracks and sample packs.',
 		price: 6.8,
 		priceStroops: 68000000,
 		instructorId: 'dariofuentes',
@@ -41,7 +43,8 @@ const MOCK_CREATORS: MockCreator[] = [
 	{
 		id: '3',
 		title: 'Nour Al-Rashid',
-		description: 'Independent filmmaker. Shares raw footage, director cuts, and project updates with key holders.',
+		description:
+			'Independent filmmaker. Shares raw footage, director cuts, and project updates with key holders.',
 		price: 22.0,
 		priceStroops: 220000000,
 		instructorId: 'nour.film',
@@ -56,7 +59,8 @@ const MOCK_CREATORS: MockCreator[] = [
 	{
 		id: '4',
 		title: 'Kai Osei',
-		description: 'Writer and essayist. Long-form pieces, early drafts, and reader discussions behind the keys.',
+		description:
+			'Writer and essayist. Long-form pieces, early drafts, and reader discussions behind the keys.',
 		price: 4.2,
 		priceStroops: 42000000,
 		instructorId: 'kaiosei',
@@ -70,7 +74,8 @@ const MOCK_CREATORS: MockCreator[] = [
 	{
 		id: '5',
 		title: 'Priya Nair',
-		description: 'Fashion designer and stylist. Exclusive lookbooks, collabs, and wardrobe access for holders.',
+		description:
+			'Fashion designer and stylist. Exclusive lookbooks, collabs, and wardrobe access for holders.',
 		price: 9.6,
 		priceStroops: 96000000,
 		instructorId: 'priyanair',
@@ -85,7 +90,8 @@ const MOCK_CREATORS: MockCreator[] = [
 	{
 		id: '6',
 		title: 'Tobias Wren',
-		description: 'Photographer and visual storyteller. Key holders access full resolution galleries and print drops.',
+		description:
+			'Photographer and visual storyteller. Key holders access full resolution galleries and print drops.',
 		price: 7.1,
 		priceStroops: 71000000,
 		instructorId: 'tobiaswren',
@@ -125,7 +131,8 @@ export default function TrendingCreators() {
 		<section
 			className="bg-white px-6 py-20"
 			style={{
-				backgroundImage: 'radial-gradient(circle, #d1d5db 0.75px, transparent 0.75px)',
+				backgroundImage:
+					'radial-gradient(circle, #d1d5db 0.75px, transparent 0.75px)',
 				backgroundSize: '22px 22px',
 			}}
 		>
@@ -135,19 +142,25 @@ export default function TrendingCreators() {
 					{/* Eyebrow */}
 					<div className="flex items-center gap-2">
 						<span className="size-1.5 rounded-full bg-gray-300" />
-						<span className="font-jakarta text-sm text-gray-400">Trending now</span>
+						<span className="font-jakarta text-sm text-gray-400">
+							Trending now
+						</span>
 					</div>
 
 					{/* Heading + View all */}
 					<div className="mt-3 flex items-end justify-between gap-6">
 						<h2 className="font-pt-serif text-[clamp(1.6rem,3.5vw,2.4rem)] font-normal leading-[1.15]">
-							<span className="text-gray-900">Creators worth holding,</span>
+							<span className="text-gray-900">
+								Creators worth holding,
+							</span>
 							<br />
-							<span className="text-gray-400">before the price tells you so.</span>
+							<span className="text-gray-400">
+								before the price tells you so.
+							</span>
 						</h2>
 						<Link
 							to="/marketplace"
-							className="mb-1 flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"
+							className="mb-1 md:flex hidden shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-900"
 						>
 							View all
 							<ArrowRight className="size-3.5" />

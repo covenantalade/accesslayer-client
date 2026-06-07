@@ -35,26 +35,42 @@ const FAQS = [
 	},
 ];
 
-function Row({ q, a, index, open, onToggle }: {
-	q: string; a: string; index: number; open: boolean; onToggle: () => void;
+function Row({
+	q,
+	a,
+	index,
+	open,
+	onToggle,
+}: {
+	q: string;
+	a: string;
+	index: number;
+	open: boolean;
+	onToggle: () => void;
 }) {
 	return (
 		<div className="border-t border-black/6 first:border-t-0">
 			<button
 				onClick={onToggle}
-				className="group flex w-full items-start gap-6 py-6 text-left"
+				className="group flex w-full items-start md:gap-6 gap-2 py-6 text-left"
 			>
 				<span className="mt-0.5 min-w-[2rem] font-mono text-[10px] text-gray-300 transition-colors group-hover:text-gray-400">
 					{String(index + 1).padStart(2, '0')}
 				</span>
-				<span className={`flex-1 font-jakarta text-base font-medium transition-colors duration-200 ${open ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}>
+				<span
+					className={`flex-1 font-jakarta text-base font-medium transition-colors duration-200 ${open ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}
+				>
 					{q}
 				</span>
-				<span className={`mt-1 font-mono text-lg leading-none text-gray-300 transition-all duration-300 group-hover:text-gray-500 ${open ? 'rotate-45' : ''}`}>
+				<span
+					className={`mt-1 font-mono text-lg leading-none text-gray-300 transition-all duration-300 group-hover:text-gray-500 ${open ? 'rotate-45' : ''}`}
+				>
 					+
 				</span>
 			</button>
-			<div className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-40 pb-6' : 'max-h-0'}`}>
+			<div
+				className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-40 pb-6' : 'max-h-0'}`}
+			>
 				<p className="ml-14 font-jakarta text-sm leading-relaxed text-gray-400">
 					{a}
 				</p>
@@ -92,7 +108,9 @@ export default function FAQ() {
 				<div ref={headingRef} className="scroll-reveal mb-12">
 					<div className="flex items-center gap-2">
 						<span className="size-1.5 rounded-full bg-gray-300" />
-						<span className="font-jakarta text-sm text-gray-400">FAQ</span>
+						<span className="font-jakarta text-sm text-gray-400">
+							FAQ
+						</span>
 					</div>
 					<h2 className="mt-3 font-pt-serif text-[clamp(1.6rem,3.5vw,2.4rem)] font-normal leading-[1.15]">
 						<span className="text-gray-900">Your questions, </span>
